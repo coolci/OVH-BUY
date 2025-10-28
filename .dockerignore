@@ -1,0 +1,47 @@
+# 依赖
+node_modules/
+backend/venv/
+backend/__pycache__/
+
+# 构建产物
+dist/
+build/
+.vite/
+
+# 缓存
+backend/cache/*
+!backend/cache/.gitkeep
+
+# 日志
+backend/logs/*
+!backend/logs/.gitkeep
+*.log
+
+# 开发文件
+.git/
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 临时文件
+*.tmp
+*.bak
+*~
+.DS_Store
+Thumbs.db
+
+# 环境变量（Docker 使用环境变量）
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# 测试和文档
+*.md
+!README.md
+
+# 其他
+.gitignore
+LICENSE
+
