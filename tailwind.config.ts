@@ -71,7 +71,7 @@ export default {
 					'neon-alt': '#e100ff',
 					'grid': '#1e2a3a',
 					'text': '#ffffff',
-					'muted': '#8a9ab0',
+					'muted': '#94a3b8', // 更亮的灰色，提升对比度
 					'dark': '#0a1525',
 					'highlight': '#ff3e88'
 				}
