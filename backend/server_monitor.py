@@ -183,7 +183,7 @@ class ServerMonitor:
                                     change_type = "unavailable"
                             else:
                                 # 首次检查有货时发送通知
-                                self.add_log("INFO", f"首次检查: {plan_code}@{dc}{config_desc} 有货（状态: {status}），发送通知", "mon instantly")
+                                self.add_log("INFO", f"首次检查: {plan_code}@{dc}{config_desc} 有货（状态: {status}），发送通知", "monitor")
                                 if subscription.get("notifyAvailable", True):
                                     status_changed = True
                                     change_type = "available"
@@ -372,9 +372,9 @@ class ServerMonitor:
             else:
                 # 首次检查有货时发送通知
                 self.add_log("INFO", f"首次检查: {plan_code}@{dc}{config_desc} 有货（状态: {status}），发送通知", "monitor")
-            if subscription.get("notifyAvailable", True):
-                status_changed = True
-                change_type = "available"
+                if subscription.get("notifyAvailable", True):
+                    status_changed = True
+                    change_type = "available"
         # 从无货变有货
         elif old_status == "unavailable" and status != "unavailable":
             if subscription.get("notifyAvailable", True):
