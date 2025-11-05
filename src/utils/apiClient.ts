@@ -103,7 +103,7 @@ apiClient.interceptors.response.use(
             const message = (error.response.data as any)?.error || error.message;
             console.error(`API错误 [400]:`, message);
           }
-          // notAvailable的400静默处理，让组件自行显示友好提示
+          // notAvailable的400完全静默，让组件自行显示友好提示
           break;
         case 500:
           toast.error('服务器错误');

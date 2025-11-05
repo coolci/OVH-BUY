@@ -1827,29 +1827,32 @@ const ServersPage = () => {
 
             {/* 已移除紧凑模式切换，固定显示完整内容 */}
             
-            <button
-              onClick={batchAddAllServersToMonitor}
-              disabled={!isAuthenticated || servers.length === 0}
-              className="px-3 sm:px-4 py-1.5 sm:py-2 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/30 hover:border-blue-500/50 rounded-md transition-all text-xs sm:text-sm font-medium shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 sm:gap-2 flex-shrink-0 whitespace-nowrap"
-              title="将所有服务器添加到监控（全机房监控）"
-            >
-              <Bell size={14} className="sm:w-4 sm:h-4" />
-              <span className="hidden sm:inline">一键监控所有</span>
-              <span className="sm:hidden">监控全部</span>
-            </button>
-            
-            <button
-              onClick={() => fetchServers(true)}
-              disabled={isLoading}
-              className="px-3 sm:px-4 py-1.5 sm:py-2 bg-cyber-accent/10 hover:bg-cyber-accent/20 text-cyber-accent border border-cyber-accent/30 hover:border-cyber-accent/50 rounded-md transition-all text-xs sm:text-sm font-medium shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 sm:gap-2 flex-shrink-0 whitespace-nowrap"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`${isLoading ? 'animate-spin' : ''} sm:w-4 sm:h-4`}>
-                <polyline points="1 4 1 10 7 10"></polyline>
-                <polyline points="23 20 23 14 17 14"></polyline>
-                <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"></path>
-              </svg>
-              刷新
-            </button>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <button
+                onClick={batchAddAllServersToMonitor}
+                disabled={!isAuthenticated || servers.length === 0}
+                className="px-3 sm:px-4 py-1.5 sm:py-2 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/30 hover:border-blue-500/50 rounded-lg transition-all duration-200 text-xs sm:text-sm font-medium shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 sm:gap-2 whitespace-nowrap active:scale-95"
+                title="将所有服务器添加到监控（全机房监控）"
+              >
+                <Bell size={14} className="sm:w-4 sm:h-4 flex-shrink-0" />
+                <span className="hidden sm:inline">一键监控所有</span>
+                <span className="sm:hidden">监控全部</span>
+              </button>
+              
+              <button
+                onClick={() => fetchServers(true)}
+                disabled={isLoading}
+                className="px-3 sm:px-4 py-1.5 sm:py-2 bg-cyber-accent/10 hover:bg-cyber-accent/20 text-cyber-accent border border-cyber-accent/30 hover:border-cyber-accent/50 rounded-lg transition-all duration-200 text-xs sm:text-sm font-medium shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 sm:gap-2 whitespace-nowrap active:scale-95"
+                title="刷新服务器列表"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`${isLoading ? 'animate-spin' : ''} sm:w-4 sm:h-4 flex-shrink-0`}>
+                  <polyline points="1 4 1 10 7 10"></polyline>
+                  <polyline points="23 20 23 14 17 14"></polyline>
+                  <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"></path>
+                </svg>
+                <span>刷新</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>

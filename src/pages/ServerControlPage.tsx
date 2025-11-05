@@ -1360,6 +1360,9 @@ const ServerControlPage: React.FC = () => {
       if (error?.response?.status === 404 && error?.response?.data?.notAvailable) {
         // 服务器不支持此功能，这是正常情况
         setBackupFtp({ notAvailable: true, error: error.response.data.error });
+      } else if (error?.response?.status === 400 && error?.response?.data?.notAvailable) {
+        // 服务器无法使用此服务，这是正常情况
+        setBackupFtp({ notAvailable: true, error: error.response.data.error });
       } else if (error?.response?.status === 404 && error?.response?.data?.notActivated) {
         // 备份FTP未激活，这也是正常情况
         setBackupFtp({ notActivated: true });
@@ -4678,15 +4681,19 @@ const ServerControlPage: React.FC = () => {
                     <button
                       onClick={() => selectedServer && fetchNetworkSpecs(selectedServer.serviceName)}
                       disabled={loadingNetworkSpecs}
-                      className="p-1.5 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 rounded-md transition-all disabled:opacity-50"
+                      className="relative w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center bg-cyber-bg/60 hover:bg-cyan-500/10 border border-cyan-500/40 hover:border-cyan-500/60 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 group overflow-hidden"
                       title="刷新">
-                      <RefreshCw className={`w-3.5 h-3.5 text-cyan-400 ${loadingNetworkSpecs ? 'animate-spin' : ''}`} />
+                      <RefreshCw className={`relative z-10 w-3.5 h-3.5 sm:w-4 sm:h-4 text-cyan-400 group-hover:text-cyan-300 transition-colors duration-200 ${loadingNetworkSpecs ? 'animate-spin' : ''}`} />
+                      <div className="absolute inset-0 rounded-lg bg-gradient-to-br from-cyan-500/0 via-cyan-500/0 to-blue-500/0 group-hover:from-cyan-500/10 group-hover:via-cyan-500/5 group-hover:to-blue-500/10 transition-all duration-200 pointer-events-none" />
+                      <div className="absolute inset-0 rounded-lg opacity-0 group-hover:opacity-100 bg-cyan-500/5 blur-sm transition-opacity duration-200 pointer-events-none" />
                     </button>
                     <button
                       onClick={() => setShowNetworkSpecsDialog(false)}
-                      className="p-1.5 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 rounded-md transition-all group"
+                      className="relative w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center bg-cyber-bg/60 hover:bg-red-500/10 border border-red-500/40 hover:border-red-500/60 rounded-lg transition-all duration-200 group active:scale-95 overflow-hidden"
                       title="关闭">
-                      <X className="w-3.5 h-3.5 text-red-400 group-hover:text-red-300" />
+                      <X className="relative z-10 w-3.5 h-3.5 sm:w-4 sm:h-4 text-red-400 group-hover:text-red-300 transition-colors duration-200" />
+                      <div className="absolute inset-0 rounded-lg bg-gradient-to-br from-red-500/0 via-red-500/0 to-orange-500/0 group-hover:from-red-500/10 group-hover:via-red-500/5 group-hover:to-orange-500/10 transition-all duration-200 pointer-events-none" />
+                      <div className="absolute inset-0 rounded-lg opacity-0 group-hover:opacity-100 bg-red-500/5 blur-sm transition-opacity duration-200 pointer-events-none" />
                     </button>
                   </div>
                 </div>
@@ -5041,7 +5048,7 @@ const ServerControlPage: React.FC = () => {
       {createPortal(
         <AnimatePresence>
           {showAdvancedDialog && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4">
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -5054,126 +5061,137 @@ const ServerControlPage: React.FC = () => {
                 initial={{ opacity: 0, scale: 0.96, y: 20 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.96, y: 20 }}
-                className="relative bg-cyber-bg/95 backdrop-blur-xl border border-yellow-500/30 rounded-xl shadow-2xl shadow-yellow-500/10 max-w-5xl w-full max-h-[88vh] overflow-hidden">
+                onClick={(e) => e.stopPropagation()}
+                className="relative bg-cyber-bg/95 backdrop-blur-xl border border-yellow-500/30 rounded-xl shadow-2xl shadow-yellow-500/10 max-w-5xl w-full max-h-[95vh] sm:max-h-[88vh] overflow-hidden flex flex-col">
                 
                 <div className="h-0.5 bg-gradient-to-r from-yellow-500 via-orange-500 to-red-500" />
                 
                 {/* 标题栏 */}
-                <div className="flex items-center justify-between px-4 py-2.5 border-b border-yellow-500/20 bg-gradient-to-r from-yellow-500/5 to-transparent">
-                  <div className="flex items-center gap-2">
-                    <div className="p-1.5 bg-gradient-to-br from-yellow-500/20 to-orange-500/20 rounded-lg border border-yellow-500/30">
+                <div className="flex items-center justify-between px-3 sm:px-4 py-2 sm:py-2.5 border-b border-yellow-500/20 bg-gradient-to-r from-yellow-500/5 to-transparent flex-shrink-0">
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                    <div className="p-1.5 bg-gradient-to-br from-yellow-500/20 to-orange-500/20 rounded-lg border border-yellow-500/30 flex-shrink-0">
                       <Settings className="w-4 h-4 text-yellow-400" />
                     </div>
-                    <div>
-                      <h3 className="text-base font-bold text-cyber-text">高级功能管理</h3>
-                      <p className="text-[10px] text-cyber-muted/80 leading-none">
+                    <div className="min-w-0 flex-1">
+                      <h3 className="text-sm sm:text-base font-bold text-cyber-text truncate">高级功能管理</h3>
+                      <p className="text-[10px] text-cyber-muted/80 leading-none truncate">
                         {selectedServer?.name} · {selectedServer?.serviceName}
                       </p>
                     </div>
                   </div>
                   <button
                     onClick={() => setShowAdvancedDialog(false)}
-                    className="p-1.5 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 rounded-md transition-all group">
-                    <X className="w-3.5 h-3.5 text-red-400 group-hover:text-red-300" />
+                    className="relative w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center bg-cyber-bg/60 hover:bg-red-500/10 border border-red-500/40 hover:border-red-500/60 rounded-lg transition-all duration-200 group active:scale-95 flex-shrink-0 ml-2 overflow-hidden"
+                    title="关闭">
+                    <X className="relative z-10 w-3.5 h-3.5 sm:w-4 sm:h-4 text-red-400 group-hover:text-red-300 transition-colors duration-200" />
+                    <div className="absolute inset-0 rounded-lg bg-gradient-to-br from-red-500/0 via-red-500/0 to-orange-500/0 group-hover:from-red-500/10 group-hover:via-red-500/5 group-hover:to-orange-500/10 transition-all duration-200 pointer-events-none" />
+                    <div className="absolute inset-0 rounded-lg opacity-0 group-hover:opacity-100 bg-red-500/5 blur-sm transition-opacity duration-200 pointer-events-none" />
                   </button>
                 </div>
 
                 {/* 标签页导航 */}
-                <div className="flex items-center gap-1 px-4 py-2 border-b border-cyber-accent/20 overflow-x-auto">
+                <div className="flex items-center gap-1 px-2 sm:px-4 py-2 border-b border-cyber-accent/20 overflow-x-auto flex-shrink-0 scrollbar-hide">
                   <button
                     onClick={() => { setAdvancedTab('burst'); selectedServer && fetchBurst(selectedServer.serviceName); }}
-                    className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all whitespace-nowrap ${
+                    className={`px-2 sm:px-3 py-1.5 rounded-lg text-[10px] sm:text-xs font-medium transition-all duration-200 whitespace-nowrap flex items-center gap-1 active:scale-95 ${
                       advancedTab === 'burst'
-                        ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/40'
-                        : 'text-cyber-muted hover:text-cyber-text hover:bg-cyber-accent/10'
+                        ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/40 shadow-sm shadow-yellow-500/20'
+                        : 'text-cyber-muted hover:text-cyber-text hover:bg-cyber-accent/10 border border-transparent'
                     }`}>
-                    <Zap className="w-3 h-3 inline mr-1" />
-                    突发带宽
+                    <Zap className="w-3 h-3 flex-shrink-0" />
+                    <span className="hidden sm:inline">突发带宽</span>
+                    <span className="sm:hidden">突发</span>
                   </button>
                   <button
                     onClick={() => { setAdvancedTab('firewall'); selectedServer && fetchFirewall(selectedServer.serviceName); }}
-                    className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all whitespace-nowrap ${
+                    className={`px-2 sm:px-3 py-1.5 rounded-lg text-[10px] sm:text-xs font-medium transition-all duration-200 whitespace-nowrap flex items-center gap-1 active:scale-95 ${
                       advancedTab === 'firewall'
-                        ? 'bg-red-500/20 text-red-400 border border-red-500/40'
-                        : 'text-cyber-muted hover:text-cyber-text hover:bg-cyber-accent/10'
+                        ? 'bg-red-500/20 text-red-400 border border-red-500/40 shadow-sm shadow-red-500/20'
+                        : 'text-cyber-muted hover:text-cyber-text hover:bg-cyber-accent/10 border border-transparent'
                     }`}>
-                    <Shield className="w-3 h-3 inline mr-1" />
-                    防火墙
+                    <Shield className="w-3 h-3 flex-shrink-0" />
+                    <span className="hidden sm:inline">防火墙</span>
+                    <span className="sm:hidden">防火墙</span>
                   </button>
                   <button
                     onClick={() => { setAdvancedTab('backup'); selectedServer && fetchBackupFtp(selectedServer.serviceName); }}
-                    className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all whitespace-nowrap ${
+                    className={`px-2 sm:px-3 py-1.5 rounded-lg text-[10px] sm:text-xs font-medium transition-all duration-200 whitespace-nowrap flex items-center gap-1 active:scale-95 ${
                       advancedTab === 'backup'
-                        ? 'bg-blue-500/20 text-blue-400 border border-blue-500/40'
-                        : 'text-cyber-muted hover:text-cyber-text hover:bg-cyber-accent/10'
+                        ? 'bg-blue-500/20 text-blue-400 border border-blue-500/40 shadow-sm shadow-blue-500/20'
+                        : 'text-cyber-muted hover:text-cyber-text hover:bg-cyber-accent/10 border border-transparent'
                     }`}>
-                    <Database className="w-3 h-3 inline mr-1" />
-                    备份FTP
+                    <Database className="w-3 h-3 flex-shrink-0" />
+                    <span className="hidden sm:inline">备份FTP</span>
+                    <span className="sm:hidden">备份</span>
                   </button>
                   <button
                     onClick={() => { setAdvancedTab('dns'); selectedServer && fetchSecondaryDns(selectedServer.serviceName); }}
-                    className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all whitespace-nowrap ${
+                    className={`px-2 sm:px-3 py-1.5 rounded-lg text-[10px] sm:text-xs font-medium transition-all duration-200 whitespace-nowrap flex items-center gap-1 active:scale-95 ${
                       advancedTab === 'dns'
-                        ? 'bg-green-500/20 text-green-400 border border-green-500/40'
-                        : 'text-cyber-muted hover:text-cyber-text hover:bg-cyber-accent/10'
+                        ? 'bg-green-500/20 text-green-400 border border-green-500/40 shadow-sm shadow-green-500/20'
+                        : 'text-cyber-muted hover:text-cyber-text hover:bg-cyber-accent/10 border border-transparent'
                     }`}>
-                    <Globe className="w-3 h-3 inline mr-1" />
-                    从DNS
+                    <Globe className="w-3 h-3 flex-shrink-0" />
+                    <span className="hidden sm:inline">从DNS</span>
+                    <span className="sm:hidden">DNS</span>
                   </button>
                   <button
                     onClick={() => { setAdvancedTab('vmac'); selectedServer && fetchVirtualMacs(selectedServer.serviceName); }}
-                    className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all whitespace-nowrap ${
+                    className={`px-2 sm:px-3 py-1.5 rounded-lg text-[10px] sm:text-xs font-medium transition-all duration-200 whitespace-nowrap flex items-center gap-1 active:scale-95 ${
                       advancedTab === 'vmac'
-                        ? 'bg-purple-500/20 text-purple-400 border border-purple-500/40'
-                        : 'text-cyber-muted hover:text-cyber-text hover:bg-cyber-accent/10'
+                        ? 'bg-purple-500/20 text-purple-400 border border-purple-500/40 shadow-sm shadow-purple-500/20'
+                        : 'text-cyber-muted hover:text-cyber-text hover:bg-cyber-accent/10 border border-transparent'
                     }`}>
-                    <Network className="w-3 h-3 inline mr-1" />
-                    虚拟MAC
+                    <Network className="w-3 h-3 flex-shrink-0" />
+                    <span className="hidden sm:inline">虚拟MAC</span>
+                    <span className="sm:hidden">MAC</span>
                   </button>
                   <button
                     onClick={() => { setAdvancedTab('vrack'); selectedServer && fetchVracks(selectedServer.serviceName); }}
-                    className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all whitespace-nowrap ${
+                    className={`px-2 sm:px-3 py-1.5 rounded-lg text-[10px] sm:text-xs font-medium transition-all duration-200 whitespace-nowrap flex items-center gap-1 active:scale-95 ${
                       advancedTab === 'vrack'
-                        ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/40'
-                        : 'text-cyber-muted hover:text-cyber-text hover:bg-cyber-accent/10'
+                        ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/40 shadow-sm shadow-indigo-500/20'
+                        : 'text-cyber-muted hover:text-cyber-text hover:bg-cyber-accent/10 border border-transparent'
                     }`}>
-                    <Server className="w-3 h-3 inline mr-1" />
-                    vRack
+                    <Server className="w-3 h-3 flex-shrink-0" />
+                    <span>vRack</span>
                   </button>
                   <button
                     onClick={() => { setAdvancedTab('orderable'); selectedServer && fetchOrderable(selectedServer.serviceName); }}
-                    className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all whitespace-nowrap ${
+                    className={`px-2 sm:px-3 py-1.5 rounded-lg text-[10px] sm:text-xs font-medium transition-all duration-200 whitespace-nowrap flex items-center gap-1 active:scale-95 ${
                       advancedTab === 'orderable'
-                        ? 'bg-pink-500/20 text-pink-400 border border-pink-500/40'
-                        : 'text-cyber-muted hover:text-cyber-text hover:bg-cyber-accent/10'
+                        ? 'bg-pink-500/20 text-pink-400 border border-pink-500/40 shadow-sm shadow-pink-500/20'
+                        : 'text-cyber-muted hover:text-cyber-text hover:bg-cyber-accent/10 border border-transparent'
                     }`}>
-                    <BarChart3 className="w-3 h-3 inline mr-1" />
-                    可订购
+                    <BarChart3 className="w-3 h-3 flex-shrink-0" />
+                    <span className="hidden sm:inline">可订购</span>
+                    <span className="sm:hidden">订购</span>
                   </button>
                   <button
                     onClick={() => { setAdvancedTab('options'); selectedServer && fetchServerOptions(selectedServer.serviceName); }}
-                    className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all whitespace-nowrap ${
+                    className={`px-2 sm:px-3 py-1.5 rounded-lg text-[10px] sm:text-xs font-medium transition-all duration-200 whitespace-nowrap flex items-center gap-1 active:scale-95 ${
                       advancedTab === 'options'
-                        ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/40'
-                        : 'text-cyber-muted hover:text-cyber-text hover:bg-cyber-accent/10'
+                        ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/40 shadow-sm shadow-cyan-500/20'
+                        : 'text-cyber-muted hover:text-cyber-text hover:bg-cyber-accent/10 border border-transparent'
                     }`}>
-                    <Cog className="w-3 h-3 inline mr-1" />
-                    选项
+                    <Cog className="w-3 h-3 flex-shrink-0" />
+                    <span>选项</span>
                   </button>
                   <button
                     onClick={() => { setAdvancedTab('ip'); selectedServer && fetchIpSpecs(selectedServer.serviceName); }}
-                    className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all whitespace-nowrap ${
+                    className={`px-2 sm:px-3 py-1.5 rounded-lg text-[10px] sm:text-xs font-medium transition-all duration-200 whitespace-nowrap flex items-center gap-1 active:scale-95 ${
                       advancedTab === 'ip'
-                        ? 'bg-teal-500/20 text-teal-400 border border-teal-500/40'
-                        : 'text-cyber-muted hover:text-cyber-text hover:bg-cyber-accent/10'
+                        ? 'bg-teal-500/20 text-teal-400 border border-teal-500/40 shadow-sm shadow-teal-500/20'
+                        : 'text-cyber-muted hover:text-cyber-text hover:bg-cyber-accent/10 border border-transparent'
                     }`}>
-                    <Wifi className="w-3 h-3 inline mr-1" />
-                    IP规格
+                    <Wifi className="w-3 h-3 flex-shrink-0" />
+                    <span className="hidden sm:inline">IP规格</span>
+                    <span className="sm:hidden">IP</span>
                   </button>
                 </div>
 
                 {/* 内容区域 */}
-                <div className="p-4 overflow-y-auto max-h-[calc(88vh-110px)] custom-scrollbar">
+                <div className="p-2 sm:p-4 overflow-y-auto flex-1 min-h-0 custom-scrollbar">
                   {/* Burst突发带宽标签页 */}
                   {advancedTab === 'burst' && (
                     <div className="space-y-3">
@@ -5496,84 +5514,89 @@ const ServerControlPage: React.FC = () => {
                           <RefreshCw className="w-8 h-8 animate-spin text-pink-400" />
                         </div>
                       ) : (
-                        <div className="space-y-3">
+                        <div className="space-y-2 sm:space-y-3">
                           {orderableBandwidth && (
-                            <div className="bg-gradient-to-br from-cyan-500/5 to-blue-500/5 border border-cyan-500/30 rounded-lg p-4">
-                              <h5 className="text-sm font-semibold text-cyan-400 mb-3 flex items-center gap-2">
-                                <BarChart3 className="w-4 h-4" />
+                            <div className="bg-gradient-to-br from-cyan-500/5 to-blue-500/5 border border-cyan-500/30 rounded-lg p-3 sm:p-4">
+                              <h5 className="text-xs sm:text-sm font-semibold text-cyan-400 mb-2 sm:mb-3 flex items-center gap-2">
+                                <BarChart3 className="w-3.5 sm:w-4 h-3.5 sm:h-4" />
                                 可订购带宽
                               </h5>
                               {orderableBandwidth.orderable ? (
-                                <div className="space-y-2">
+                                <div className="space-y-1.5 sm:space-y-2">
                                   {orderableBandwidth.platinum && orderableBandwidth.platinum.length > 0 && (
-                                    <div className="bg-cyber-bg/50 rounded p-2">
-                                      <div className="text-xs font-medium text-cyan-300 mb-1">Platinum</div>
-                                      <div className="text-xs text-cyber-muted">{orderableBandwidth.platinum.length} 个套餐可用</div>
+                                    <div className="bg-cyber-bg/50 rounded p-1.5 sm:p-2">
+                                      <div className="text-[10px] sm:text-xs font-medium text-cyan-300 mb-0.5 sm:mb-1">Platinum</div>
+                                      <div className="text-[10px] sm:text-xs text-cyber-muted">{orderableBandwidth.platinum.length} 个套餐可用</div>
                                     </div>
                                   )}
                                   {orderableBandwidth.premium && orderableBandwidth.premium.length > 0 && (
-                                    <div className="bg-cyber-bg/50 rounded p-2">
-                                      <div className="text-xs font-medium text-blue-300 mb-1">Premium</div>
-                                      <div className="text-xs text-cyber-muted">{orderableBandwidth.premium.length} 个套餐可用</div>
+                                    <div className="bg-cyber-bg/50 rounded p-1.5 sm:p-2">
+                                      <div className="text-[10px] sm:text-xs font-medium text-blue-300 mb-0.5 sm:mb-1">Premium</div>
+                                      <div className="text-[10px] sm:text-xs text-cyber-muted">{orderableBandwidth.premium.length} 个套餐可用</div>
                                     </div>
                                   )}
                                   {orderableBandwidth.ultimate && orderableBandwidth.ultimate.length > 0 && (
-                                    <div className="bg-cyber-bg/50 rounded p-2">
-                                      <div className="text-xs font-medium text-purple-300 mb-1">Ultimate</div>
-                                      <div className="text-xs text-cyber-muted">{orderableBandwidth.ultimate.length} 个套餐可用</div>
+                                    <div className="bg-cyber-bg/50 rounded p-1.5 sm:p-2">
+                                      <div className="text-[10px] sm:text-xs font-medium text-purple-300 mb-0.5 sm:mb-1">Ultimate</div>
+                                      <div className="text-[10px] sm:text-xs text-cyber-muted">{orderableBandwidth.ultimate.length} 个套餐可用</div>
                                     </div>
                                   )}
                                 </div>
                               ) : (
-                                <div className="text-xs text-cyber-muted py-2">当前不可订购带宽升级</div>
+                                <div className="text-[10px] sm:text-xs text-cyber-muted py-1 sm:py-2">当前不可订购带宽升级</div>
                               )}
                             </div>
                           )}
                           {orderableTraffic && (
-                            <div className="bg-gradient-to-br from-orange-500/5 to-red-500/5 border border-orange-500/30 rounded-lg p-4">
-                              <h5 className="text-sm font-semibold text-orange-400 mb-3 flex items-center gap-2">
-                                <Activity className="w-4 h-4" />
+                            <div className="bg-gradient-to-br from-orange-500/5 to-red-500/5 border border-orange-500/30 rounded-lg p-3 sm:p-4">
+                              <h5 className="text-xs sm:text-sm font-semibold text-orange-400 mb-2 sm:mb-3 flex items-center gap-2">
+                                <Activity className="w-3.5 sm:w-4 h-3.5 sm:h-4" />
                                 可订购流量
                               </h5>
                               {orderableTraffic.orderable ? (
                                 orderableTraffic.traffic && orderableTraffic.traffic.length > 0 ? (
-                                  <div className="text-xs text-cyber-muted py-2">
+                                  <div className="text-[10px] sm:text-xs text-cyber-muted py-1 sm:py-2">
                                     {orderableTraffic.traffic.length} 个流量套餐可用
                                   </div>
                                 ) : (
-                                  <div className="text-xs text-cyber-muted py-2">暂无可用流量套餐</div>
+                                  <div className="text-[10px] sm:text-xs text-cyber-muted py-1 sm:py-2">暂无可用流量套餐</div>
                                 )
                               ) : (
-                                <div className="text-xs text-cyber-muted py-2">当前不可订购流量升级</div>
+                                <div className="text-[10px] sm:text-xs text-cyber-muted py-1 sm:py-2">当前不可订购流量升级</div>
                               )}
                             </div>
                           )}
                           {orderableIp && (
-                            <div className="bg-gradient-to-br from-purple-500/5 to-pink-500/5 border border-purple-500/30 rounded-lg p-4">
-                              <h5 className="text-sm font-semibold text-purple-400 mb-3 flex items-center gap-2">
-                                <Wifi className="w-4 h-4" />
+                            <div className="bg-gradient-to-br from-purple-500/5 to-pink-500/5 border border-purple-500/30 rounded-lg p-3 sm:p-4">
+                              <h5 className="text-xs sm:text-sm font-semibold text-purple-400 mb-2 sm:mb-3 flex items-center gap-2">
+                                <Wifi className="w-3.5 sm:w-4 h-3.5 sm:h-4" />
                                 可订购IP
                               </h5>
-                              <div className="space-y-3">
+                              <div className="space-y-2 sm:space-y-3">
                                 {orderableIp.ipv4 && orderableIp.ipv4.length > 0 && (
                                   <div>
-                                    <div className="text-xs font-medium text-green-400 mb-2">IPv4地址</div>
+                                    <div className="text-[10px] sm:text-xs font-medium text-green-400 mb-1.5 sm:mb-2">IPv4地址</div>
                                     {orderableIp.ipv4.map((ip: any, idx: number) => (
-                                      <div key={idx} className="bg-cyber-bg/50 rounded p-3 mb-2">
-                                        <div className="flex items-center justify-between mb-2">
-                                          <span className="text-xs font-medium text-cyber-text">
+                                      <div key={idx} className="bg-cyber-bg/50 rounded p-2 sm:p-3 mb-1.5 sm:mb-2">
+                                        <div className="flex items-center justify-between mb-1 sm:mb-2 flex-wrap gap-1">
+                                          <span className="text-[10px] sm:text-xs font-medium text-cyber-text">
                                             {ip.type === 'failover' ? '故障转移IP' : ip.type === 'static' ? '静态IP' : ip.type}
                                           </span>
                                           {ip.included && (
-                                            <span className="text-xs px-2 py-0.5 bg-green-500/20 text-green-400 rounded">已包含</span>
+                                            <span className="text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 bg-green-500/20 text-green-400 rounded">已包含</span>
                                           )}
                                         </div>
-                                        <div className="text-xs text-cyber-muted mb-1">
-                                          可用块大小: {ip.blockSizes?.join(', ')} IP
-                                        </div>
-                                        {ip.ipNumber && (
-                                          <div className="text-xs text-cyber-muted">
-                                            IP数量: {ip.ipNumber} | 数量: {ip.number}
+                                        {ip.blockSizes && ip.blockSizes.length > 0 && (
+                                          <div className="text-[10px] sm:text-xs text-cyber-muted mb-0.5 sm:mb-1">
+                                            可用块大小: <span className="text-cyber-text font-mono break-all">{ip.blockSizes.join(', ')}</span> IP
+                                          </div>
+                                        )}
+                                        {ip.ipNumber !== undefined && (
+                                          <div className="text-[10px] sm:text-xs text-cyber-muted mb-0.5 sm:mb-1">
+                                            IP数量: <span className="text-cyber-text">{ip.ipNumber}</span>
+                                            {ip.number !== undefined && (
+                                              <span className="ml-1.5 sm:ml-2">| 数量: <span className="text-cyber-text">{ip.number}</span></span>
+                                            )}
                                           </div>
                                         )}
                                       </div>
@@ -5582,10 +5605,10 @@ const ServerControlPage: React.FC = () => {
                                 )}
                                 {orderableIp.ipv6 && orderableIp.ipv6.length > 0 && (
                                   <div>
-                                    <div className="text-xs font-medium text-blue-400 mb-2">IPv6地址</div>
+                                    <div className="text-[10px] sm:text-xs font-medium text-blue-400 mb-1.5 sm:mb-2">IPv6地址</div>
                                     {orderableIp.ipv6.map((ip: any, idx: number) => (
-                                      <div key={idx} className="bg-cyber-bg/50 rounded p-3 mb-2">
-                                        <div className="text-xs text-cyber-text">
+                                      <div key={idx} className="bg-cyber-bg/50 rounded p-2 sm:p-3 mb-1.5 sm:mb-2">
+                                        <div className="text-[10px] sm:text-xs text-cyber-text">
                                           {ip.type || 'IPv6'}
                                         </div>
                                       </div>
@@ -5594,19 +5617,19 @@ const ServerControlPage: React.FC = () => {
                                 )}
                                 {(!orderableIp.ipv4 || orderableIp.ipv4.length === 0) && 
                                  (!orderableIp.ipv6 || orderableIp.ipv6.length === 0) && (
-                                  <div className="text-xs text-cyber-muted py-2">暂无可用IP选项</div>
+                                  <div className="text-[10px] sm:text-xs text-cyber-muted py-1 sm:py-2">暂无可用IP选项</div>
                                 )}
                               </div>
-                              <div className="mt-3 pt-3 border-t border-purple-500/20 text-xs text-purple-300/70">
+                              <div className="mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-purple-500/20 text-[10px] sm:text-xs text-purple-300/70">
                                 <AlertCircle className="w-3 h-3 inline mr-1" />
                                 此页面仅显示可订购选项，实际订购请前往OVH控制面板
                               </div>
                             </div>
                           )}
                           {!orderableBandwidth && !orderableTraffic && !orderableIp && (
-                            <div className="text-center py-12 text-cyber-muted">
-                              <BarChart3 className="w-16 h-16 mx-auto mb-3 opacity-30" />
-                              <p className="text-sm">暂无可订购服务</p>
+                            <div className="text-center py-8 sm:py-12 text-cyber-muted">
+                              <BarChart3 className="w-12 sm:w-16 h-12 sm:h-16 mx-auto mb-3 opacity-30" />
+                              <p className="text-xs sm:text-sm">暂无可订购服务</p>
                             </div>
                           )}
                         </div>
@@ -5624,7 +5647,7 @@ const ServerControlPage: React.FC = () => {
                       ) : (
                         <div>
                           {serverOptions.length > 0 ? (
-                            <div className="space-y-2">
+                            <div className="space-y-1.5 sm:space-y-2">
                               {serverOptions.map((option, idx) => {
                                 // 选项名称翻译
                                 const optionNames: Record<string, string> = {
@@ -5651,11 +5674,11 @@ const ServerControlPage: React.FC = () => {
                                 const stateName = option.state ? (stateNames[option.state] || option.state) : '';
                                 
                                 return (
-                                  <div key={idx} className="bg-gradient-to-br from-cyan-500/5 to-blue-500/5 border border-cyan-500/30 rounded-lg p-3">
-                                    <div className="flex items-center justify-between mb-2">
-                                      <div className="text-sm text-cyan-400 font-medium">{optionName}</div>
+                                  <div key={idx} className="bg-gradient-to-br from-cyan-500/5 to-blue-500/5 border border-cyan-500/30 rounded-lg p-2.5 sm:p-3">
+                                    <div className="flex items-center justify-between mb-1.5 sm:mb-2 flex-wrap gap-1">
+                                      <div className="text-xs sm:text-sm text-cyan-400 font-medium">{optionName}</div>
                                       {option.state && (
-                                        <span className={`text-xs px-2 py-0.5 rounded ${
+                                        <span className={`text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 rounded ${
                                           option.state === 'subscribed' 
                                             ? 'bg-green-500/20 text-green-400' 
                                             : option.state === 'releasing' || option.state === 'toDelete'
@@ -5667,7 +5690,7 @@ const ServerControlPage: React.FC = () => {
                                       )}
                                     </div>
                                     {option.option && (
-                                      <div className="text-xs text-cyber-muted font-mono">
+                                      <div className="text-[10px] sm:text-xs text-cyber-muted font-mono">
                                         {option.option}
                                       </div>
                                     )}
@@ -5694,42 +5717,42 @@ const ServerControlPage: React.FC = () => {
                           <RefreshCw className="w-8 h-8 animate-spin text-teal-400" />
                         </div>
                       ) : ipSpecs ? (
-                        <div className="bg-gradient-to-br from-teal-500/5 to-cyan-500/5 border border-teal-500/30 rounded-lg p-4">
-                          <h4 className="text-sm font-semibold text-teal-400 mb-3 flex items-center gap-2">
-                            <Wifi className="w-4 h-4" />
+                        <div className="bg-gradient-to-br from-teal-500/5 to-cyan-500/5 border border-teal-500/30 rounded-lg p-3 sm:p-4">
+                          <h4 className="text-xs sm:text-sm font-semibold text-teal-400 mb-2 sm:mb-3 flex items-center gap-2">
+                            <Wifi className="w-3.5 sm:w-4 h-3.5 sm:h-4" />
                             IP规格详情
                           </h4>
-                          <div className="space-y-3">
+                          <div className="space-y-2 sm:space-y-3">
                             {ipSpecs.ipv4 && ipSpecs.ipv4.length > 0 && (
                               <div>
-                                <div className="text-xs font-medium text-green-400 mb-2">IPv4地址</div>
+                                <div className="text-[10px] sm:text-xs font-medium text-green-400 mb-1.5 sm:mb-2">IPv4地址</div>
                                 {ipSpecs.ipv4.map((ip: any, idx: number) => (
-                                  <div key={idx} className="bg-cyber-bg/50 rounded p-3 mb-2">
-                                    <div className="flex items-center justify-between mb-2">
-                                      <span className="text-xs font-medium text-cyber-text">
+                                  <div key={idx} className="bg-cyber-bg/50 rounded p-2 sm:p-3 mb-1.5 sm:mb-2">
+                                    <div className="flex items-center justify-between mb-1 sm:mb-2 flex-wrap gap-1">
+                                      <span className="text-[10px] sm:text-xs font-medium text-cyber-text">
                                         {ip.type === 'failover' ? '故障转移IP' : ip.type === 'static' ? '静态IP' : ip.type || 'IPv4'}
                                       </span>
                                       {ip.included && (
-                                        <span className="text-xs px-2 py-0.5 bg-green-500/20 text-green-400 rounded">已包含</span>
+                                        <span className="text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 bg-green-500/20 text-green-400 rounded">已包含</span>
                                       )}
                                     </div>
                                     {ip.blockSizes && ip.blockSizes.length > 0 && (
-                                      <div className="text-xs text-cyber-muted mb-1">
-                                        可用块大小: <span className="text-cyber-text font-mono">{ip.blockSizes.join(', ')}</span> IP
+                                      <div className="text-[10px] sm:text-xs text-cyber-muted mb-0.5 sm:mb-1">
+                                        可用块大小: <span className="text-cyber-text font-mono break-all">{ip.blockSizes.join(', ')}</span> IP
                                       </div>
                                     )}
                                     {ip.ipNumber !== undefined && (
-                                      <div className="text-xs text-cyber-muted mb-1">
+                                      <div className="text-[10px] sm:text-xs text-cyber-muted mb-0.5 sm:mb-1">
                                         IP数量: <span className="text-cyber-text">{ip.ipNumber}</span>
                                       </div>
                                     )}
                                     {ip.number !== undefined && (
-                                      <div className="text-xs text-cyber-muted">
+                                      <div className="text-[10px] sm:text-xs text-cyber-muted">
                                         数量: <span className="text-cyber-text">{ip.number}</span>
                                       </div>
                                     )}
                                     {ip.optionRequired && (
-                                      <div className="text-xs text-yellow-400 mt-1">
+                                      <div className="text-[10px] sm:text-xs text-yellow-400 mt-0.5 sm:mt-1">
                                         需要选项: {ip.optionRequired}
                                       </div>
                                     )}
@@ -5739,15 +5762,15 @@ const ServerControlPage: React.FC = () => {
                             )}
                             {ipSpecs.ipv6 && ipSpecs.ipv6.length > 0 && (
                               <div>
-                                <div className="text-xs font-medium text-blue-400 mb-2">IPv6地址</div>
+                                <div className="text-[10px] sm:text-xs font-medium text-blue-400 mb-1.5 sm:mb-2">IPv6地址</div>
                                 {ipSpecs.ipv6.map((ip: any, idx: number) => (
-                                  <div key={idx} className="bg-cyber-bg/50 rounded p-3 mb-2">
-                                    <div className="text-xs text-cyber-text">
+                                  <div key={idx} className="bg-cyber-bg/50 rounded p-2 sm:p-3 mb-1.5 sm:mb-2">
+                                    <div className="text-[10px] sm:text-xs text-cyber-text">
                                       {ip.type || 'IPv6'}
                                     </div>
                                     {ip.blockSizes && ip.blockSizes.length > 0 && (
-                                      <div className="text-xs text-cyber-muted mt-1">
-                                        可用块大小: <span className="text-cyber-text font-mono">{ip.blockSizes.join(', ')}</span>
+                                      <div className="text-[10px] sm:text-xs text-cyber-muted mt-0.5 sm:mt-1">
+                                        可用块大小: <span className="text-cyber-text font-mono break-all">{ip.blockSizes.join(', ')}</span>
                                       </div>
                                     )}
                                   </div>
@@ -5756,7 +5779,7 @@ const ServerControlPage: React.FC = () => {
                             )}
                             {(!ipSpecs.ipv4 || ipSpecs.ipv4.length === 0) && 
                              (!ipSpecs.ipv6 || ipSpecs.ipv6.length === 0) && (
-                              <div className="text-xs text-cyber-muted py-2">暂无IP规格信息</div>
+                              <div className="text-[10px] sm:text-xs text-cyber-muted py-1 sm:py-2">暂无IP规格信息</div>
                             )}
                           </div>
                         </div>

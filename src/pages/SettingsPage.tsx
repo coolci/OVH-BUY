@@ -177,13 +177,13 @@ const SettingsPage = () => {
     
     // Validate API Secret Key
     if (!formValues.apiSecretKey) {
-      toast.error("请设置网站安全密钥");
+      toast.error("请设置访问密码");
       return;
     }
     
     setIsSaving(true);
     try {
-      // 1. 先保存网站安全密钥到 localStorage（这个总是要保存的）
+      // 1. 先保存访问密码到 localStorage（这个总是要保存的）
       setApiSecretKey(formValues.apiSecretKey);
       
       // 等待一下确保 localStorage 写入完成
@@ -208,8 +208,8 @@ const SettingsPage = () => {
           setIsSaving(false);
         }
       } else {
-        // 如果没填写 OVH API，只保存了安全密钥
-        toast.success("网站安全密钥已保存，页面将刷新");
+        // 如果没填写 OVH API，只保存了访问密码
+        toast.success("访问密码已保存，页面将刷新");
         // 延迟刷新让用户看到提示
         setTimeout(() => {
           window.location.reload();
@@ -242,18 +242,18 @@ const SettingsPage = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
           <div className="lg:col-span-2">
             <form onSubmit={handleSubmit} className="cyber-panel p-4 sm:p-6 space-y-4 sm:space-y-6">
-              {/* 网站安全密钥 */}
+              {/* 访问密码 */}
               <div>
-                <h2 className={`${isMobile ? 'text-lg' : 'text-xl'} font-bold mb-3 sm:mb-4`}>🔐 网站安全密钥</h2>
+                <h2 className={`${isMobile ? 'text-lg' : 'text-xl'} font-bold mb-3 sm:mb-4`}>🔐 访问密码</h2>
                 <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 mb-4">
                   <p className="text-xs text-yellow-300">
-                    ⚠️ 此密钥用于保护前后端通信，需要与后端配置保持一致。请妥善保管，不要泄露！
+                    ⚠️ 此密码用于保护前后端通信和面板访问，需要与后端配置保持一致。请妥善保管，不要泄露！
                   </p>
                 </div>
                 
                 <div>
                   <label className="block text-cyber-muted mb-1 text-xs sm:text-sm">
-                    API 安全密钥 <span className="text-red-400">*</span>
+                    访问密码 <span className="text-red-400">*</span>
                   </label>
                   <div className="relative">
                     <input
@@ -262,7 +262,7 @@ const SettingsPage = () => {
                       value={formValues.apiSecretKey}
                       onChange={handleChange}
                       className="cyber-input w-full pr-10 text-sm"
-                      placeholder="输入后端.env文件中的API_SECRET_KEY"
+                      placeholder="输入访问密码（在后端.env文件中的API_SECRET_KEY）"
                       required
                     />
                     <button
@@ -286,10 +286,10 @@ const SettingsPage = () => {
                   <div className="text-xs text-cyan-400 mt-2 space-y-1">
                     <p>💡 请在 <code className="bg-cyan-500/20 px-1 py-0.5 rounded">backend/.env</code> 文件中查找 <code className="bg-cyan-500/20 px-1 py-0.5 rounded">API_SECRET_KEY</code> 的值并复制到此处</p>
                     <p className="text-purple-300">
-                      <strong>双重用途：</strong>① API 安全验证  ② 面板解锁密码
+                      <strong>双重用途：</strong>① 前后端通信安全验证  ② 面板访问密码
                     </p>
                     <p className="text-yellow-300">
-                      ⚡ <strong>非首次配置？</strong>只需填写此字段并保存，即可快速解锁进入面板（其他字段无需填写）
+                      ⚡ <strong>非首次配置？</strong>只需填写访问密码并保存，即可快速解锁进入面板（其他字段无需填写）
                     </p>
                   </div>
                 </div>
@@ -531,34 +531,34 @@ const SettingsPage = () => {
                         <label className="block text-cyber-muted mb-1 text-sm">
                           Webhook URL（自动检测当前域名，可手动修改）
                         </label>
-                        <div className="flex gap-2">
+                        <div className="flex flex-col sm:flex-row gap-2">
                           <input
                             type="text"
                             value={webhookUrl}
                             onChange={(e) => setWebhookUrl(e.target.value)}
-                            className="cyber-input flex-1"
+                            className="cyber-input flex-1 min-w-0"
                             placeholder="https://your-domain.com"
                           />
                           <button
                             type="button"
                             onClick={autoDetectWebhookUrl}
-                            className="cyber-button px-4 whitespace-nowrap"
+                            className="cyber-button px-3 sm:px-4 whitespace-nowrap flex-shrink-0 text-xs sm:text-sm"
                             title="自动检测当前域名"
                           >
                             自动检测
                           </button>
                         </div>
-                        <p className="text-xs text-cyber-muted mt-1">
-                          完整 URL 将自动添加：{webhookUrl}/api/telegram/webhook
+                        <p className="text-xs text-cyber-muted mt-1 break-words">
+                          完整 URL 将自动添加：{webhookUrl || 'https://your-domain.com'}/api/telegram/webhook
                         </p>
                       </div>
 
-                      <div className="flex gap-2">
+                      <div className="flex flex-col sm:flex-row gap-2">
                         <button
                           type="button"
                           onClick={handleSetWebhook}
                           disabled={isSettingWebhook || !tgToken}
-                          className="cyber-button flex-1"
+                          className="cyber-button flex-1 text-xs sm:text-sm"
                         >
                           {isSettingWebhook ? (
                             <span className="flex items-center justify-center">
@@ -576,7 +576,7 @@ const SettingsPage = () => {
                           type="button"
                           onClick={loadWebhookInfo}
                           disabled={isLoadingWebhookInfo || !tgToken}
-                          className="cyber-button px-4"
+                          className="cyber-button px-3 sm:px-4 flex-shrink-0 text-xs sm:text-sm"
                           title="刷新状态"
                         >
                           {isLoadingWebhookInfo ? (
@@ -592,11 +592,13 @@ const SettingsPage = () => {
 
                       {/* 显示 Webhook 状态 */}
                       {webhookInfo && (
-                        <div className="bg-cyber-dark/50 border border-cyber-accent/20 rounded p-3 space-y-2">
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs text-cyber-muted">当前状态：</span>
-                            <span className={`text-xs font-semibold ${
-                              webhookInfo.url ? 'text-green-400' : 'text-yellow-400'
+                        <div className="bg-gradient-to-br from-cyber-dark/50 to-cyber-dark/30 border border-cyber-accent/20 rounded-lg p-3 sm:p-4 space-y-3">
+                          <div className="flex items-center justify-between pb-2 border-b border-cyber-accent/10">
+                            <span className="text-xs sm:text-sm text-cyber-muted font-medium">当前状态</span>
+                            <span className={`text-xs sm:text-sm font-semibold px-2 py-1 rounded ${
+                              webhookInfo.url 
+                                ? 'bg-green-500/20 text-green-400 border border-green-500/30' 
+                                : 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
                             }`}>
                               {webhookInfo.url ? '✅ 已设置' : '⚠️ 未设置'}
                             </span>
@@ -605,34 +607,109 @@ const SettingsPage = () => {
                           {webhookInfo.url && (
                             <>
                               <div>
-                                <span className="text-xs text-cyber-muted block mb-1">Webhook URL：</span>
-                                <code className="text-xs bg-cyber-dark p-1.5 rounded block break-all">
+                                <span className="text-xs text-cyber-muted block mb-1.5 font-medium">Webhook URL</span>
+                                <code className="text-xs sm:text-sm bg-cyber-dark/80 p-2 rounded border border-cyber-accent/10 block break-all font-mono leading-relaxed">
                                   {webhookInfo.url}
                                 </code>
                               </div>
                               
                               {webhookInfo.pending_update_count !== undefined && (
-                                <div className="flex items-center justify-between">
-                                  <span className="text-xs text-cyber-muted">待处理更新：</span>
-                                  <span className="text-xs font-mono">
+                                <div className="flex items-center justify-between p-2 bg-cyber-dark/30 rounded border border-cyber-accent/10">
+                                  <span className="text-xs text-cyber-muted">待处理更新</span>
+                                  <span className={`text-xs font-mono font-semibold px-2 py-0.5 rounded ${
+                                    webhookInfo.pending_update_count === 0
+                                      ? 'bg-green-500/20 text-green-400'
+                                      : 'bg-yellow-500/20 text-yellow-400'
+                                  }`}>
                                     {webhookInfo.pending_update_count}
                                   </span>
                                 </div>
                               )}
                               
-                              {webhookInfo.last_error_date && (
-                                <div className="bg-red-500/10 border border-red-500/30 rounded p-2 mt-2">
-                                  <div className="text-xs text-red-400 font-semibold mb-1">⚠️ 最后错误：</div>
-                                  <div className="text-xs text-red-300">
-                                    {new Date(webhookInfo.last_error_date * 1000).toLocaleString('zh-CN')}
-                                  </div>
-                                  {webhookInfo.last_error_message && (
-                                    <div className="text-xs text-red-200 mt-1">
-                                      {webhookInfo.last_error_message}
+                              {webhookInfo.last_error_date && (() => {
+                                const errorDate = new Date(webhookInfo.last_error_date * 1000);
+                                const now = new Date();
+                                const msSinceError = now.getTime() - errorDate.getTime();
+                                const hoursSinceError = msSinceError / (1000 * 60 * 60);
+                                const daysSinceError = msSinceError / (1000 * 60 * 60 * 24);
+                                const isRecentError = hoursSinceError < 24;
+                                const hasNoPendingUpdates = webhookInfo.pending_update_count === 0;
+                                
+                                // 格式化相对时间
+                                const formatRelativeTime = () => {
+                                  if (hoursSinceError < 1) {
+                                    const minutes = Math.floor(msSinceError / (1000 * 60));
+                                    return `${minutes}分钟前`;
+                                  } else if (hoursSinceError < 24) {
+                                    return `${Math.floor(hoursSinceError)}小时前`;
+                                  } else if (daysSinceError < 7) {
+                                    return `${Math.floor(daysSinceError)}天前`;
+                                  } else {
+                                    return errorDate.toLocaleDateString('zh-CN');
+                                  }
+                                };
+                                
+                                return (
+                                  <div className={`border rounded-lg p-3 mt-2 transition-all ${
+                                    isRecentError 
+                                      ? 'bg-red-500/10 border-red-500/30' 
+                                      : 'bg-yellow-500/10 border-yellow-500/30'
+                                  }`}>
+                                    <div className="flex items-start justify-between gap-2 mb-2">
+                                      <div className="flex items-center gap-1.5">
+                                        <span className={`text-xs font-semibold ${
+                                          isRecentError ? 'text-red-400' : 'text-yellow-400'
+                                        }`}>
+                                          {isRecentError ? '⚠️' : '📋'} {isRecentError ? '最后错误' : '历史错误'}
+                                        </span>
+                                      </div>
+                                      <span className={`text-[10px] px-1.5 py-0.5 rounded ${
+                                        isRecentError 
+                                          ? 'bg-red-500/20 text-red-300' 
+                                          : 'bg-yellow-500/20 text-yellow-300'
+                                      }`}>
+                                        {formatRelativeTime()}
+                                      </span>
                                     </div>
-                                  )}
-                                </div>
-                              )}
+                                    
+                                    <div className={`text-xs font-mono mb-1.5 ${
+                                      isRecentError ? 'text-red-300/80' : 'text-yellow-300/80'
+                                    }`}>
+                                      {errorDate.toLocaleString('zh-CN', {
+                                        year: 'numeric',
+                                        month: '2-digit',
+                                        day: '2-digit',
+                                        hour: '2-digit',
+                                        minute: '2-digit',
+                                        second: '2-digit',
+                                        hour12: false
+                                      })}
+                                    </div>
+                                    
+                                    {webhookInfo.last_error_message && (
+                                      <div className={`text-xs leading-relaxed break-words p-2 rounded bg-black/20 ${
+                                        isRecentError ? 'text-red-200' : 'text-yellow-200'
+                                      }`}>
+                                        {webhookInfo.last_error_message}
+                                      </div>
+                                    )}
+                                    
+                                    {!isRecentError && hasNoPendingUpdates && (
+                                      <div className="text-xs text-green-300/90 mt-3 pt-2 border-t border-yellow-500/20 flex items-start gap-1.5">
+                                        <span>💡</span>
+                                        <span>待处理更新为 0，Webhook 可能已恢复正常。如需清除此错误记录，请重新设置 Webhook。</span>
+                                      </div>
+                                    )}
+                                    
+                                    {isRecentError && (
+                                      <div className="text-xs text-red-300/80 mt-2 pt-2 border-t border-red-500/20 flex items-start gap-1.5">
+                                        <span>🔍</span>
+                                        <span>这是最近的错误，请检查 Webhook 配置和服务器状态。</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })()}
                             </>
                           )}
                         </div>
@@ -686,7 +763,7 @@ const SettingsPage = () => {
                   <div className="bg-purple-500/10 border border-purple-500/30 rounded-lg p-3 mb-4">
                     <p className="text-xs text-purple-300 font-semibold mb-1.5">🔐 快速解锁提示</p>
                     <p className="text-xs text-purple-200 leading-relaxed">
-                      如果您已完成初次配置，本页面还可作为<strong>面板解锁功能</strong>使用。只需输入 <strong>API 安全密钥</strong>（其他字段可不填），点击保存即可进入面板。
+                      如果您已完成初次配置，本页面还可作为<strong>面板解锁功能</strong>使用。只需输入 <strong>访问密码</strong>（其他字段可不填），点击保存即可进入面板。
                     </p>
                   </div>
                   

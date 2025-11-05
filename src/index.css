@@ -376,6 +376,16 @@
     padding-top: env(safe-area-inset-top, 0);
   }
 
+  /* Hide scrollbar but keep functionality */
+  .scrollbar-hide {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;  /* Chrome, Safari and Opera */
+  }
+
   /* Dialog styling */
   .cyber-dialog {
     @apply border border-cyber-accent/30 bg-cyber-bg/90 backdrop-blur-md shadow-neon-inner;
