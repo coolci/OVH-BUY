@@ -18,7 +18,6 @@
  */
 
 import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
 import { api } from "@/utils/apiClient";
 import { toast } from "sonner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -32,7 +31,6 @@ import {
   FileText,
   CheckCircle,
   AlertCircle,
-  Loader2,
   Mail,
   Inbox,
   Clock
@@ -87,6 +85,11 @@ const AccountManagementPage = () => {
     refunds: false,
     emails: false
   });
+  const [hasLoaded, setHasLoaded] = useState({
+    account: false,
+    refunds: false,
+    emails: false
+  });
 
   // 获取账户信息
   // API: GET /api/ovh/account/info -> OVH API: GET /me
@@ -108,6 +111,7 @@ const AccountManagementPage = () => {
       toast.error('获取账户信息失败: ' + (error.response?.data?.message || error.message));
     } finally {
       setLoading(prev => ({ ...prev, account: false }));
+      setHasLoaded(prev => ({ ...prev, account: true }));
     }
   };
 
@@ -129,6 +133,7 @@ const AccountManagementPage = () => {
       toast.error('获取退款列表失败: ' + (error.response?.data?.message || error.message));
     } finally {
       setLoading(prev => ({ ...prev, refunds: false }));
+      setHasLoaded(prev => ({ ...prev, refunds: true }));
     }
   };
 
@@ -150,6 +155,7 @@ const AccountManagementPage = () => {
       toast.error('获取邮件历史失败: ' + (error.response?.data?.message || error.message));
     } finally {
       setLoading(prev => ({ ...prev, emails: false }));
+      setHasLoaded(prev => ({ ...prev, emails: true }));
     }
   };
 
@@ -218,115 +224,81 @@ const AccountManagementPage = () => {
     fetchEmailHistory();
   }, []);
 
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: { staggerChildren: 0.1 }
-    }
-  };
-
-  const itemVariants = {
-    hidden: { y: 20, opacity: 0 },
-    visible: { y: 0, opacity: 1 }
-  };
-
   return (
     <div className="space-y-6">
       {/* 页面标题 */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
-      >
+      <div>
         <h1 className="text-3xl font-bold mb-1 cyber-glow-text">账户管理</h1>
         <p className="text-cyber-muted">查看和管理您的 OVH 账户信息</p>
-      </motion.div>
+      </div>
 
       {/* 账户信息卡片 - 顶部主要信息 */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
-        className="cyber-card p-6"
-      >
-        {loading.account ? (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-pulse">
-            {[...Array(3)].map((_, i) => (
-              <div key={i} className="space-y-2">
-                <div className="flex items-center gap-3">
-                  <div className="p-2.5 rounded-lg bg-cyber-grid/40 flex-shrink-0 w-10 h-10"></div>
-                  <div className="flex-1 min-w-0">
-                    <div className="h-3 bg-cyber-grid/30 rounded w-16 mb-2"></div>
-                    <div className="h-6 bg-cyber-grid/30 rounded w-32"></div>
-                  </div>
-                </div>
-                <div className="h-3 bg-cyber-grid/20 rounded w-24 pl-14"></div>
+      <div className="cyber-card p-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* 客户代码 */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-lg bg-cyber-accent/20 flex-shrink-0">
+                <User className="w-5 h-5 text-cyber-accent" />
               </div>
-            ))}
-          </div>
-        ) : accountInfo ? (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.3 }}
-            className="grid grid-cols-1 md:grid-cols-3 gap-6"
-          >
-            {/* 客户代码 */}
-            <div className="space-y-2">
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 rounded-lg bg-cyber-accent/20 flex-shrink-0">
-                  <User className="w-5 h-5 text-cyber-accent" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs text-cyber-muted font-medium mb-1">客户代码</p>
-                  <p className="text-2xl font-bold text-cyber-accent leading-tight">
-                    {accountInfo.customerCode}
-                  </p>
-                </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-cyber-muted font-medium mb-1">客户代码</p>
+                {accountInfo ? (
+                  <>
+                    <p className="text-2xl font-bold text-cyber-accent leading-tight">
+                      {accountInfo.customerCode}
+                    </p>
+                    <p className="text-xs text-cyber-muted/70 pl-0 mt-1">
+                      {accountInfo.nichandle}
+                    </p>
+                  </>
+                ) : null}
               </div>
-              <p className="text-xs text-cyber-muted/70 pl-14">
-                {accountInfo.nichandle}
-              </p>
             </div>
-            
-            {/* 邮箱地址 */}
-            <div className="space-y-2">
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 rounded-lg bg-cyber-accent/20 flex-shrink-0">
-                  <Mail className="w-5 h-5 text-cyber-accent" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs text-cyber-muted font-medium mb-1">邮箱地址</p>
+          </div>
+          
+          {/* 邮箱地址 */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-lg bg-cyber-accent/20 flex-shrink-0">
+                <Mail className="w-5 h-5 text-cyber-accent" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-cyber-muted font-medium mb-1">邮箱地址</p>
+                {accountInfo ? (
                   <p className="text-lg font-semibold text-cyber-text leading-tight break-all">
                     {accountInfo.email}
                   </p>
-                </div>
+                ) : null}
               </div>
             </div>
+          </div>
 
-            {/* 账户持有人 */}
-            <div className="space-y-2">
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 rounded-lg bg-cyber-accent/20 flex-shrink-0">
-                  <User className="w-5 h-5 text-cyber-accent" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs text-cyber-muted font-medium mb-1">账户持有人</p>
-                  <p className="text-lg font-semibold text-cyber-text leading-tight">
-                    {accountInfo.firstname} {accountInfo.name}
-                  </p>
-                </div>
+          {/* 账户持有人 */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-lg bg-cyber-accent/20 flex-shrink-0">
+                <User className="w-5 h-5 text-cyber-accent" />
               </div>
-              {accountInfo.city && accountInfo.country && (
-                <p className="text-xs text-cyber-muted/70 pl-14">
-                  {accountInfo.city}, {accountInfo.country}
-                </p>
-              )}
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-cyber-muted font-medium mb-1">账户持有人</p>
+                {accountInfo ? (
+                  <>
+                    <p className="text-lg font-semibold text-cyber-text leading-tight">
+                      {accountInfo.firstname} {accountInfo.name}
+                    </p>
+                    {accountInfo.city && accountInfo.country && (
+                      <p className="text-xs text-cyber-muted/70 pl-0 mt-1">
+                        {accountInfo.city}, {accountInfo.country}
+                      </p>
+                    )}
+                  </>
+                ) : null}
+              </div>
             </div>
-          </motion.div>
-        ) : null}
-      </motion.div>
+          </div>
+        </div>
+      </div>
 
       {/* 详细信息标签页 */}
       <Tabs defaultValue="emails" className="w-full">
@@ -360,35 +332,11 @@ const AccountManagementPage = () => {
                 <CardDescription>OVH 发送给您的邮件通知</CardDescription>
               </CardHeader>
               <CardContent>
-                {loading.emails && emails.length === 0 ? (
-                  <div className="space-y-2 animate-pulse">
-                    {[...Array(5)].map((_, i) => (
-                      <div key={i} className="cyber-panel p-4 bg-cyber-grid/30">
-                        <div className="flex items-start gap-3">
-                          <div className="w-5 h-5 bg-cyber-grid/40 rounded mt-1 flex-shrink-0"></div>
-                          <div className="flex-1 min-w-0">
-                            <div className="h-4 bg-cyber-grid/30 rounded w-3/4 mb-2"></div>
-                            <div className="h-3 bg-cyber-grid/20 rounded w-1/2"></div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : emails.length === 0 ? (
-                  <div className="text-center py-8 text-cyber-muted">
-                    <Inbox className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                    <p>暂无邮件</p>
-                  </div>
-                ) : (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ duration: 0.3 }}
-                    className="space-y-2 max-h-[600px] overflow-y-auto pr-2"
-                  >
+                {emails.length > 0 ? (
+                  <div className="space-y-2 max-h-[600px] overflow-y-auto pr-2">
                     {emails.map((email) => (
-                      <div 
-                        key={email.id} 
+                      <div
+                        key={email.id}
                         className={`cyber-panel p-4 cursor-pointer transition-all hover:bg-cyber-accent/10 ${
                           selectedEmail?.id === email.id ? 'bg-cyber-accent/20 border-cyber-accent' : 'bg-cyber-grid/30'
                         }`}
@@ -413,8 +361,13 @@ const AccountManagementPage = () => {
                         </div>
                       </div>
                     ))}
-                  </motion.div>
-                )}
+                  </div>
+                ) : hasLoaded.emails && !loading.emails && emails.length === 0 ? (
+                  <div className="text-center py-8 text-cyber-muted">
+                    <Inbox className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                    <p>暂无邮件</p>
+                  </div>
+                ) : null}
               </CardContent>
             </Card>
 
@@ -492,37 +445,13 @@ const AccountManagementPage = () => {
               <CardDescription>查看您的退款记录和状态</CardDescription>
             </CardHeader>
             <CardContent>
-              {loading.refunds && refunds.length === 0 ? (
-                <div className="space-y-3 animate-pulse">
-                  {[...Array(3)].map((_, i) => (
-                    <div key={i} className="cyber-panel p-4 bg-cyber-grid/30">
-                      <div className="flex justify-between items-start gap-4">
-                        <div className="flex-1">
-                          <div className="h-5 bg-cyber-grid/30 rounded w-32 mb-2"></div>
-                          <div className="h-4 bg-cyber-grid/20 rounded w-40"></div>
-                        </div>
-                        <div className="text-right">
-                          <div className="h-4 bg-cyber-grid/20 rounded w-16 mb-2"></div>
-                          <div className="h-6 bg-cyber-grid/30 rounded w-24"></div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : refunds.length === 0 ? (
-                <div className="text-center py-8 text-cyber-muted">
-                  <CreditCard className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                  <p>没有退款记录</p>
-                </div>
-              ) : (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.3 }}
-                  className="space-y-3"
-                >
+              {refunds.length > 0 ? (
+                <div className="space-y-3">
                   {refunds.map((refund) => (
-                    <div key={refund.refundId} className="cyber-panel p-4 bg-cyber-grid/30">
+                    <div
+                      key={refund.refundId}
+                      className="cyber-panel p-4 bg-cyber-grid/30"
+                    >
                       <div className="flex justify-between items-start gap-4">
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
@@ -555,45 +484,40 @@ const AccountManagementPage = () => {
                       </div>
                     </div>
                   ))}
-                </motion.div>
-              )}
+                </div>
+              ) : hasLoaded.refunds && !loading.refunds && refunds.length === 0 ? (
+                <div className="text-center py-8 text-cyber-muted">
+                  <CreditCard className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                  <p>没有退款记录</p>
+                </div>
+              ) : null}
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
 
       {/* 账户状态卡片 - 数据来源: accountInfo (API: GET /api/ovh/account/info) */}
-      <motion.div
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-        className="grid grid-cols-1 md:grid-cols-3 gap-4"
-      >
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* KYC验证状态 - 使用字段: accountInfo.kycValidated */}
-        <motion.div variants={itemVariants}>
+        <div>
           <Card className="cyber-card">
             <CardContent className="p-5">
               <div className="flex items-start gap-3">
                 <div className={`p-2.5 rounded-lg flex-shrink-0 ${
-                  accountInfo?.kycValidated ? 'bg-green-500/20' : 'bg-yellow-500/20'
+                  accountInfo?.kycValidated === true ? 'bg-green-500/20' : 
+                  accountInfo?.kycValidated === false ? 'bg-yellow-500/20' : 
+                  'bg-cyber-accent/20'
                 }`}>
                   <CheckCircle className={`w-5 h-5 ${
-                    accountInfo?.kycValidated ? 'text-green-400' : 'text-yellow-400'
+                    accountInfo?.kycValidated === true ? 'text-green-400' : 
+                    accountInfo?.kycValidated === false ? 'text-yellow-400' : 
+                    'text-cyber-accent'
                   }`} />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-cyber-muted mb-2">KYC 验证</p>
-                  {loading.account ? (
-                    <div className="space-y-2 animate-pulse">
-                      <div className="h-8 bg-cyber-grid/30 rounded w-20"></div>
-                      <div className="h-3 bg-cyber-grid/20 rounded w-24"></div>
-                    </div>
-                  ) : accountInfo?.kycValidated !== undefined ? (
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ duration: 0.3 }}
-                    >
+                  {accountInfo?.kycValidated !== undefined && (
+                    <div>
                       <p className={`text-2xl font-bold mb-1 ${
                         accountInfo.kycValidated ? 'text-green-400' : 'text-yellow-400'
                       }`}>
@@ -602,18 +526,16 @@ const AccountManagementPage = () => {
                       <p className="text-xs text-cyber-muted">
                         {accountInfo.kycValidated ? '身份已确认' : '需要验证身份'}
                       </p>
-                    </motion.div>
-                  ) : (
-                    <p className="text-sm text-cyber-muted">-</p>
+                    </div>
                   )}
                 </div>
               </div>
             </CardContent>
           </Card>
-        </motion.div>
+        </div>
 
         {/* 账户状态 - 使用字段: accountInfo.state */}
-        <motion.div variants={itemVariants}>
+        <div>
           <Card className="cyber-card">
             <CardContent className="p-5">
               <div className="flex items-start gap-3">
@@ -626,17 +548,8 @@ const AccountManagementPage = () => {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-cyber-muted mb-2">账户状态</p>
-                  {loading.account ? (
-                    <div className="space-y-2 animate-pulse">
-                      <div className="h-8 bg-cyber-grid/30 rounded w-16"></div>
-                      <div className="h-3 bg-cyber-grid/20 rounded w-32"></div>
-                    </div>
-                  ) : accountInfo?.state !== undefined ? (
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ duration: 0.3 }}
-                    >
+                  {accountInfo?.state !== undefined && (
+                    <div>
                       <p className={`text-2xl font-bold mb-1 ${
                         accountInfo.state === 'complete' ? 'text-green-400' : 'text-cyber-text'
                       }`}>
@@ -647,18 +560,16 @@ const AccountManagementPage = () => {
                           电话: {accountInfo.phone}
                         </p>
                       )}
-                    </motion.div>
-                  ) : (
-                    <p className="text-sm text-cyber-muted">-</p>
+                    </div>
                   )}
                 </div>
               </div>
             </CardContent>
           </Card>
-        </motion.div>
+        </div>
 
         {/* 账户货币 - 使用字段: accountInfo.currency.code, accountInfo.currency.symbol */}
-        <motion.div variants={itemVariants}>
+        <div>
           <Card className="cyber-card">
             <CardContent className="p-5">
               <div className="flex items-start gap-3">
@@ -667,17 +578,8 @@ const AccountManagementPage = () => {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-cyber-muted mb-2">账户货币</p>
-                  {loading.account ? (
-                    <div className="space-y-2 animate-pulse">
-                      <div className="h-8 bg-cyber-grid/30 rounded w-12"></div>
-                      <div className="h-3 bg-cyber-grid/20 rounded w-20"></div>
-                    </div>
-                  ) : accountInfo?.currency?.code ? (
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ duration: 0.3 }}
-                    >
+                  {accountInfo?.currency?.code && (
+                    <div>
                       <p className="text-2xl font-bold text-cyber-text mb-1">
                         {accountInfo.currency.code}
                       </p>
@@ -686,16 +588,14 @@ const AccountManagementPage = () => {
                           符号: {accountInfo.currency.symbol}
                         </p>
                       )}
-                    </motion.div>
-                  ) : (
-                    <p className="text-sm text-cyber-muted">-</p>
+                    </div>
                   )}
                 </div>
               </div>
             </CardContent>
           </Card>
-        </motion.div>
-      </motion.div>
+        </div>
+      </div>
     </div>
   );
 };
