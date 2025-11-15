@@ -33,14 +33,6 @@ class ServerMonitor:
         self.check_interval = 5  # 检查间隔（秒），默认5秒
         self.thread = None
         
-        # 价格缓存：key = f"{plan_code}|{sorted_options}"，value = {"price": str, "timestamp": float}
-        self.price_cache = {}
-        self.price_cache_ttl = 3 * 24 * 3600  # 缓存有效期：3天（秒）
-        
-        # 有效的plan_code集合：历史上有过价格查询成功的plan_code（永不过期）
-        # 用于自动下单时跳过价格核验，加快下单速度
-        self.valid_plan_codes = set()  # 存储有效的plan_code
-        
         # Options 缓存：key = f"{plan_code}|{datacenter}"，value = {"options": list, "timestamp": float}
         # 用于在 Telegram callback_data 中 options 丢失时恢复（旧机制，保留兼容性）
         self.options_cache = {}
@@ -461,7 +453,7 @@ class ServerMonitor:
                         
                         config_info_with_price = config_info.copy() if config_info else None
                         if config_info_with_price:
-                            config_info_with_price["cached_price"] = price_text  # 传递缓存的价格
+                            config_info_with_price["cached_price"] = price_text  # 传递查询到的价格
                         
                         # 汇总所有有货的机房数据
                         available_dcs = [{"dc": n["dc"], "status": n["status"]} for n in available_notifications]
@@ -947,19 +939,11 @@ class ServerMonitor:
                 # 获取价格信息（优先使用缓存的价格）
                 price_text = None
                 
-                # 如果config_info中包含缓存的价格，直接使用
+                # 如果config_info中包含已查询的价格，直接使用
                 if config_info and "cached_price" in config_info:
                     price_text = config_info.get("cached_price")
                     if price_text:
-                        self.add_log("DEBUG", f"使用传递的缓存价格: {price_text}", "monitor")
-                
-                # 如果没有传递的价格，先检查内存缓存
-                if not price_text and config_info:
-                    options = config_info.get("options", [])
-                    cached_price = self._get_cached_price(plan_code, options)
-                    if cached_price:
-                        price_text = cached_price
-                        self.add_log("DEBUG", f"使用内存缓存价格: {price_text}", "monitor")
+                        self.add_log("DEBUG", f"使用已查询的价格: {price_text}", "monitor")
                 
                 # 如果还是没有缓存的价格，才去查询（异步，不阻塞通知发送）
                 if not price_text:
@@ -1050,75 +1034,13 @@ class ServerMonitor:
             self.add_log("ERROR", f"发送提醒时发生异常: {str(e)}", "monitor")
             self.add_log("ERROR", f"错误详情: {traceback.format_exc()}", "monitor")
     
-    def _get_price_cache_key(self, plan_code, options):
-        """
-        生成价格缓存键
-        
-        Args:
-            plan_code: 服务器型号
-            options: 配置选项列表
-        
-        Returns:
-            str: 缓存键
-        """
-        # 对options进行排序以确保相同配置生成相同键
-        sorted_options = sorted(options) if options else []
-        return f"{plan_code}|{','.join(sorted_options)}"
-    
-    def _get_cached_price(self, plan_code, options):
-        """
-        从缓存中获取价格
-        
-        Args:
-            plan_code: 服务器型号
-            options: 配置选项列表
-        
-        Returns:
-            str or None: 缓存的价格文本，如果缓存不存在或过期返回None
-        """
-        cache_key = self._get_price_cache_key(plan_code, options)
-        
-        if cache_key in self.price_cache:
-            cached_data = self.price_cache[cache_key]
-            timestamp = cached_data.get("timestamp", 0)
-            current_time = time.time()
-            
-            # 检查缓存是否过期
-            if current_time - timestamp < self.price_cache_ttl:
-                price_text = cached_data.get("price")
-                age_hours = (current_time - timestamp) / 3600
-                self.add_log("DEBUG", f"使用缓存价格（已缓存 {age_hours:.1f} 小时）: {price_text}", "monitor")
-                return price_text
-            else:
-                # 缓存过期，删除
-                del self.price_cache[cache_key]
-                self.add_log("DEBUG", f"缓存已过期，删除: {cache_key}", "monitor")
-        
-        return None
-    
-    def _set_cached_price(self, plan_code, options, price_text):
-        """
-        将价格保存到缓存
-        
-        Args:
-            plan_code: 服务器型号
-            options: 配置选项列表
-            price_text: 价格文本
-        """
-        cache_key = self._get_price_cache_key(plan_code, options)
-        self.price_cache[cache_key] = {
-            "price": price_text,
-            "timestamp": time.time()
-        }
-        self.add_log("DEBUG", f"价格已缓存: {cache_key} = {price_text}", "monitor")
-    
     def _get_price_info(self, plan_code, datacenter, config_info=None):
         """
-        获取配置后的价格信息（带缓存支持）
+        获取配置后的价格信息（实时查询）
         
         Args:
             plan_code: 服务器型号
-            datacenter: 数据中心（用于查询，但不影响缓存键）
+            datacenter: 数据中心（用于查询）
             config_info: 配置信息 {"memory": "xxx", "storage": "xxx", "display": "xxx", "options": [...]}
         
         Returns:
@@ -1133,12 +1055,7 @@ class ServerMonitor:
                 if 'options' in config_info and config_info['options']:
                     options = config_info['options']
             
-            # 先检查缓存
-            cached_price = self._get_cached_price(plan_code, options)
-            if cached_price:
-                return cached_price
-            
-            # 缓存不存在或过期，查询新价格
+            # 实时查询价格（不使用缓存）
             # 使用HTTP请求调用内部价格API（确保在正确的上下文访问配置）
             import requests
             
@@ -1171,13 +1088,6 @@ class ServerMonitor:
                     currency_symbol = "€" if currency == "EUR" else "$" if currency == "USD" else currency
                     price_text = f"{currency_symbol}{with_tax:.2f}/月"
                     self.add_log("DEBUG", f"价格获取成功: {price_text}", "monitor")
-                    
-                    # 保存到缓存
-                    self._set_cached_price(plan_code, options, price_text)
-                    
-                    # 标记plan_code为有效（历史上有过价格查询成功）
-                    self.valid_plan_codes.add(plan_code)
-                    self.add_log("DEBUG", f"标记plan_code为有效: {plan_code}（历史上有过价格查询成功）", "monitor")
                     
                     return price_text
                 else:
