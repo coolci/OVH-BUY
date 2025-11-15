@@ -645,7 +645,7 @@ const QueuePage = () => {
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.9 }}
-                  className="bg-cyber-dark border-2 border-cyber-accent/50 rounded-lg p-6 max-w-md w-full shadow-neon-lg pointer-events-auto"
+                  className="bg-cyber-dark border border-cyber-border rounded-lg p-6 max-w-md w-full shadow-xl pointer-events-auto"
                   onClick={(e) => e.stopPropagation()}
                 >
                   <h3 className="text-xl font-bold text-cyber-text mb-2">⚠️ 确认清空</h3>
