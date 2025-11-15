@@ -204,6 +204,7 @@ class ServerMonitor:
                     }
                     
                     # 先收集所有需要发送通知的数据中心
+                    # ✅ 关键修改：只有价格校验通过才算真正有货
                     notifications_to_send = []
                     for dc, status in config_data["datacenters"].items():
                         # 如果指定了数据中心列表，只监控列表中的
@@ -214,6 +215,23 @@ class ServerMonitor:
                         status_key = f"{dc}|{config_key}"
                         old_status = last_status.get(status_key)
                         
+                        # ✅ 关键修改：如果可用性显示有货（status != "unavailable"），需要先进行价格校验
+                        # 只有价格校验通过才算真正有货
+                        actual_status = status
+                        if status != "unavailable":
+                            # 可用性显示有货，但需要价格校验确认
+                            price_available = self._verify_price_available(plan_code, dc, config_info)
+                            if not price_available:
+                                # 价格校验失败，实际不可下单，视为无货
+                                actual_status = "unavailable"
+                                config_desc = f" [{config_display}]" if config_display else ""
+                                self.add_log("INFO", f"{plan_code}@{dc}{config_desc} 可用性显示有货但价格校验失败，视为无货", "monitor")
+                            else:
+                                # 价格校验通过，真正有货
+                                actual_status = "available"
+                                config_desc = f" [{config_display}]" if config_display else ""
+                                self.add_log("INFO", f"{plan_code}@{dc}{config_desc} 可用性有货且价格校验通过，确认有货", "monitor")
+                        
                         # 检查是否需要发送通知（包括首次检查）
                         status_changed = False
                         change_type = None
@@ -221,7 +239,7 @@ class ServerMonitor:
                         # 首次检查时也发送通知（如果配置允许）
                         if old_status is None:
                             config_desc = f" [{config_display}]" if config_display else ""
-                            if status == "unavailable":
+                            if actual_status == "unavailable":
                                 self.add_log("INFO", f"首次检查: {plan_code}@{dc}{config_desc} 无货", "monitor")
                                 # 首次检查无货时不通知（除非用户明确要求）
                                 if subscription.get("notifyUnavailable", False):
@@ -229,19 +247,19 @@ class ServerMonitor:
                                     change_type = "unavailable"
                             else:
                                 # 首次检查有货时发送通知
-                                self.add_log("INFO", f"首次检查: {plan_code}@{dc}{config_desc} 有货（状态: {status}），发送通知", "monitor")
+                                self.add_log("INFO", f"首次检查: {plan_code}@{dc}{config_desc} 有货（价格校验通过），发送通知", "monitor")
                                 if subscription.get("notifyAvailable", True):
                                     status_changed = True
                                     change_type = "available"
                         # 从无货变有货
-                        elif old_status == "unavailable" and status != "unavailable":
+                        elif old_status == "unavailable" and actual_status != "unavailable":
                             if subscription.get("notifyAvailable", True):
                                 status_changed = True
                                 change_type = "available"
                                 config_desc = f" [{config_display}]" if config_display else ""
-                                self.add_log("INFO", f"{plan_code}@{dc}{config_desc} 从无货变有货（状态: {status}）", "monitor")
+                                self.add_log("INFO", f"{plan_code}@{dc}{config_desc} 从无货变有货（价格校验通过）", "monitor")
                         # 从有货变无货
-                        elif old_status not in ["unavailable", None] and status == "unavailable":
+                        elif old_status not in ["unavailable", None] and actual_status == "unavailable":
                             if subscription.get("notifyUnavailable", False):
                                 status_changed = True
                                 change_type = "unavailable"
@@ -251,11 +269,14 @@ class ServerMonitor:
                         if status_changed:
                             notifications_to_send.append({
                                 "dc": dc,
-                                "status": status,
+                                "status": actual_status,  # 使用实际状态（经过价格校验）
                                 "old_status": old_status,
                                 "status_key": status_key,
                                 "change_type": change_type
                             })
+                        
+                        # 更新状态记录（使用实际状态）
+                        last_status[status_key] = actual_status
                     
                     # 对于同一个配置，只查询一次价格（使用第一个有货的数据中心）
                     price_text = None
@@ -985,6 +1006,80 @@ class ServerMonitor:
         except Exception as e:
             self.add_log("ERROR", f"发送提醒时发生异常: {str(e)}", "monitor")
             self.add_log("ERROR", f"错误详情: {traceback.format_exc()}", "monitor")
+    
+    def _verify_price_available(self, plan_code, datacenter, config_info=None):
+        """
+        验证价格是否可用（可下单）
+        只有价格校验通过才算真正有货
+        
+        Args:
+            plan_code: 服务器型号
+            datacenter: 数据中心
+            config_info: 配置信息 {"memory": "xxx", "storage": "xxx", "display": "xxx", "options": [...]}
+        
+        Returns:
+            bool: True表示价格可用（可下单），False表示价格不可用
+        """
+        try:
+            # 提取配置选项
+            options = []
+            
+            if config_info:
+                # 如果config_info中已经有options字段（API2格式），直接使用
+                if 'options' in config_info and config_info['options']:
+                    options = config_info['options']
+            
+            # 使用HTTP请求调用内部价格API进行价格校验
+            import requests
+            
+            # 调用内部API端点
+            api_url = "http://127.0.0.1:19998/api/internal/monitor/price"
+            payload = {
+                "plan_code": plan_code,
+                "datacenter": datacenter,
+                "options": options
+            }
+            
+            try:
+                response = requests.post(api_url, json=payload, timeout=10)  # 价格校验使用较短超时
+                response.raise_for_status()
+                result = response.json()
+            except requests.exceptions.RequestException as e:
+                self.add_log("DEBUG", f"价格校验API请求失败: {plan_code}@{datacenter} - {str(e)}", "monitor")
+                return False
+            
+            # 检查价格是否有效（与quick-order中的逻辑一致）
+            if not result.get("success"):
+                error_msg = result.get("error", "未知错误")
+                self.add_log("DEBUG", f"价格校验失败: {plan_code}@{datacenter} - {error_msg}", "monitor")
+                return False
+            
+            if "price" not in result:
+                self.add_log("DEBUG", f"价格校验失败: {plan_code}@{datacenter} - price字段缺失", "monitor")
+                return False
+            
+            price_info = result.get("price")
+            if not isinstance(price_info, dict):
+                self.add_log("DEBUG", f"价格校验失败: {plan_code}@{datacenter} - price字段类型错误", "monitor")
+                return False
+            
+            prices = price_info.get("prices", {})
+            if not isinstance(prices, dict):
+                self.add_log("DEBUG", f"价格校验失败: {plan_code}@{datacenter} - prices字段缺失或类型错误", "monitor")
+                return False
+            
+            with_tax = prices.get("withTax")
+            if with_tax in [None, 0, 0.0]:
+                self.add_log("DEBUG", f"价格校验失败: {plan_code}@{datacenter} - withTax无效({with_tax})", "monitor")
+                return False
+            
+            # 价格校验通过
+            self.add_log("DEBUG", f"价格校验通过: {plan_code}@{datacenter} - 含税价格: {with_tax}", "monitor")
+            return True
+                
+        except Exception as e:
+            self.add_log("WARNING", f"价格校验过程异常: {plan_code}@{datacenter} - {str(e)}", "monitor")
+            return False
     
     def _get_price_info(self, plan_code, datacenter, config_info=None):
         """
