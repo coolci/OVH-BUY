@@ -344,7 +344,7 @@ const Dashboard = () => {
             </div>
             <div className="flex justify-between items-center p-2.5 sm:p-3 rounded-lg bg-cyber-grid/5 mt-3 sm:mt-4 border-t border-cyber-grid/30 pt-3 sm:pt-4">
               <span className="text-cyber-muted text-xs sm:text-sm">系统版本</span>
-              <span className="text-cyber-text text-xs sm:text-sm font-mono font-semibold">v2.0.0</span>
+              <span className="text-cyber-text text-xs sm:text-sm font-mono font-semibold">v3.0.0</span>
             </div>
           </div>
         </motion.div>

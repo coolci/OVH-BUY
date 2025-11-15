@@ -184,7 +184,7 @@ const Sidebar = ({ onToggle, isOpen }: SidebarProps) => {
               <span>{isAuthenticated ? 'API已连接' : 'API未连接'}</span>
             </div>
           </div>
-          <div className="text-cyber-muted text-xs">v2.0.0</div>
+          <div className="text-cyber-muted text-xs">v3.0.0</div>
         </div>
       </div>
     </div>

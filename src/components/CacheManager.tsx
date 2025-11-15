@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
@@ -122,27 +121,23 @@ export const CacheManager = () => {
         </CardHeader>
         <CardContent className="space-y-3 px-4 pb-4">
           {/* 操作按钮 */}
-          <div className="grid grid-cols-2 gap-2">
-            <Button 
-              onClick={fetchCacheInfo} 
+          <div className="flex flex-wrap gap-2.5">
+            <button
+              onClick={fetchCacheInfo}
               disabled={isLoading}
-              variant="outline"
-              size="sm"
-              className="w-full text-xs"
+              className="cyber-button text-xs flex items-center justify-center gap-1.5 px-3.5 py-2 bg-cyber-surface-dark/50 border-cyber-border/50 text-cyber-muted hover:bg-cyber-surface-dark hover:border-cyber-accent/30 hover:text-cyber-accent disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
-              <RefreshCw className={`w-3 h-3 mr-1.5 ${isLoading ? 'animate-spin' : ''}`} />
-              刷新信息
-            </Button>
-            <Button 
-              onClick={clearAllCache} 
-              variant="outline"
+              <RefreshCw className={`w-3 h-3 flex-shrink-0 ${isLoading ? 'animate-spin' : ''}`} />
+              <span>刷新信息</span>
+            </button>
+            <button
+              onClick={clearAllCache}
               disabled={isClearingCache}
-              size="sm"
-              className="w-full text-xs border-red-500/30 text-red-400 hover:bg-red-500/10 hover:border-red-500/50"
+              className="cyber-button text-xs flex items-center justify-center gap-1.5 px-3.5 py-2 bg-cyber-surface-dark/50 border-cyber-border/50 text-cyber-muted hover:bg-red-900/20 hover:border-red-700/30 hover:text-red-300 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
-              <Trash2 className="w-3 h-3 mr-1.5" />
-              清除后端缓存
-            </Button>
+              <Trash2 className={`w-3 h-3 flex-shrink-0 ${isClearingCache ? 'animate-pulse' : ''}`} />
+              <span>{isClearingCache ? '清除中...' : '清除后端缓存'}</span>
+            </button>
           </div>
 
           {/* 后端缓存信息 */}
@@ -228,26 +223,22 @@ export const CacheManager = () => {
 
                 {/* 操作按钮 */}
                 <div className="grid grid-cols-2 gap-2">
-                  <Button 
-                    onClick={() => clearBackendCache('memory')} 
-                    variant="outline" 
-                    size="sm"
-                    className="w-full border-blue-500/30 hover:bg-blue-500/10 text-xs h-7"
+                  <button
+                    onClick={() => clearBackendCache('memory')}
                     disabled={isClearingCache}
+                    className="cyber-button text-xs flex items-center justify-center gap-1.5 h-7 bg-blue-900/20 border-blue-700/40 text-blue-300 hover:bg-blue-800/30 hover:border-blue-600/50 hover:text-blue-200 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200"
                   >
-                    <Trash2 className="w-3 h-3 mr-1.5" />
-                    清除内存
-                  </Button>
-                  <Button 
-                    onClick={() => clearBackendCache('files')} 
-                    variant="outline" 
-                    size="sm"
-                    className="w-full border-blue-500/30 hover:bg-blue-500/10 text-xs h-7"
+                    <Trash2 className={`w-3 h-3 flex-shrink-0 ${isClearingCache ? 'animate-pulse' : ''}`} />
+                    <span>清除内存</span>
+                  </button>
+                  <button
+                    onClick={() => clearBackendCache('files')}
                     disabled={isClearingCache}
+                    className="cyber-button text-xs flex items-center justify-center gap-1.5 h-7 bg-blue-900/20 border-blue-700/40 text-blue-300 hover:bg-blue-800/30 hover:border-blue-600/50 hover:text-blue-200 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200"
                   >
-                    <Trash2 className="w-3 h-3 mr-1.5" />
-                    清除文件
-                  </Button>
+                    <Trash2 className={`w-3 h-3 flex-shrink-0 ${isClearingCache ? 'animate-pulse' : ''}`} />
+                    <span>清除文件</span>
+                  </button>
                 </div>
               </CardContent>
             </Card>
@@ -258,15 +249,13 @@ export const CacheManager = () => {
                   <RefreshCw className="w-10 h-10 text-muted-foreground mb-2 opacity-30" />
                   <p className="text-xs text-muted-foreground mb-1">未加载后端缓存信息</p>
                   <p className="text-[10px] text-muted-foreground mb-3">点击上方“刷新信息”按钮获取缓存状态</p>
-                  <Button 
+                  <button
                     onClick={fetchCacheInfo}
-                    variant="outline"
-                    size="sm"
-                    className="text-xs h-7"
+                    className="cyber-button text-xs flex items-center justify-center gap-1.5 h-7"
                   >
-                    <RefreshCw className="w-3 h-3 mr-1.5" />
-                    立即获取
-                  </Button>
+                    <RefreshCw className="w-3 h-3 flex-shrink-0" />
+                    <span>立即获取</span>
+                  </button>
                 </CardContent>
               </Card>
             )
