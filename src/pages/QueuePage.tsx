@@ -62,7 +62,9 @@ const QueuePage = () => {
   const [selectedServer, setSelectedServer] = useState<ServerPlan | null>(null);
   const [selectedDatacenters, setSelectedDatacenters] = useState<string[]>([]);
   const [retryInterval, setRetryInterval] = useState<number>(TASK_RETRY_INTERVAL);
+  const [retryIntervalInput, setRetryIntervalInput] = useState<string>(String(TASK_RETRY_INTERVAL)); // 用于自由输入
   const [quantity, setQuantity] = useState<number>(1); // 每个数据中心的抢购数量
+  const [quantityInput, setQuantityInput] = useState<string>("1"); // 用于自由输入
   const [selectedOptions, setSelectedOptions] = useState<string[]>([]); // 选中的可选配置
   const [optionsInput, setOptionsInput] = useState<string>(''); // 用户自定义输入
   const [showClearConfirm, setShowClearConfirm] = useState(false); // 清空确认对话框
@@ -110,30 +112,33 @@ const QueuePage = () => {
       return;
     }
 
-    if (quantity < 1 || quantity > 100) {
-      toast.error("抢购数量必须在 1-100 之间");
+    const finalQuantity = Number(quantityInput) || 1;
+    if (finalQuantity < 1) {
+      toast.error("抢购数量必须大于 0");
       return;
     }
 
+    const finalRetryInterval = Number(retryIntervalInput) || TASK_RETRY_INTERVAL;
+
     let successCount = 0;
     let errorCount = 0;
-    const totalTasks = selectedDatacenters.length * quantity;
+    const totalTasks = selectedDatacenters.length * finalQuantity;
 
     toast.info(`正在创建 ${totalTasks} 个抢购任务...`);
 
     // 为每个数据中心创建指定数量的独立任务
     for (const dc of selectedDatacenters) {
-      for (let i = 0; i < quantity; i++) {
+      for (let i = 0; i < finalQuantity; i++) {
         try {
           await api.post(`/queue`, {
             planCode: planCodeInput.trim(),
             datacenter: dc,
-            retryInterval: retryInterval,
+            retryInterval: finalRetryInterval,
             options: selectedOptions, // 传递可选配置参数
           });
           successCount++;
         } catch (error) {
-          console.error(`Error adding ${planCodeInput.trim()} in ${dc} (${i + 1}/${quantity}) to queue:`, error);
+          console.error(`Error adding ${planCodeInput.trim()} in ${dc} (${i + 1}/${finalQuantity}) to queue:`, error);
           errorCount++;
         }
       }
@@ -151,7 +156,9 @@ const QueuePage = () => {
       setPlanCodeInput("");
       setSelectedDatacenters([]);
       setRetryInterval(TASK_RETRY_INTERVAL);
+      setRetryIntervalInput(String(TASK_RETRY_INTERVAL));
       setQuantity(1);
+      setQuantityInput("1");
       setSelectedOptions([]);
       setOptionsInput('');
     }
@@ -340,19 +347,35 @@ const QueuePage = () => {
                   </span>
                 </label>
                 <input
-                  type="number"
+                  type="text"
                   id="quantity"
-                  value={quantity}
+                  value={quantityInput}
                   onChange={(e) => {
-                    const value = Number(e.target.value);
-                    if (value >= 1 && value <= 100) {
-                      setQuantity(value);
-                    } else {
-                      toast.warning("抢购数量必须在 1-100 之间");
+                    const value = e.target.value;
+                    // 允许空字符串和数字输入
+                    if (value === '' || /^\d*$/.test(value)) {
+                      setQuantityInput(value);
+                      const numValue = Number(value);
+                      if (!isNaN(numValue) && numValue > 0) {
+                        setQuantity(numValue);
+                      }
                     }
                   }}
-                  min={1}
-                  max={100}
+                  onBlur={(e) => {
+                    const value = Number(e.target.value);
+                    if (isNaN(value) || value < 1) {
+                      if (e.target.value.trim() === '') {
+                        setQuantityInput("1");
+                        setQuantity(1);
+                      } else {
+                        setQuantityInput(String(value < 1 ? 1 : value));
+                        setQuantity(value < 1 ? 1 : value);
+                      }
+                    } else {
+                      setQuantity(value);
+                      setQuantityInput(String(value));
+                    }
+                  }}
                   className="w-full cyber-input bg-cyber-surface text-cyber-text border-cyber-border focus:ring-cyber-primary focus:border-cyber-primary"
                   placeholder="默认: 1台"
                 />
@@ -364,33 +387,42 @@ const QueuePage = () => {
                 <label htmlFor="retryInterval" className="block text-sm font-medium text-cyber-secondary mb-1">
                   抢购失败后重试间隔 (秒)
                   <span className="text-xs text-cyber-muted ml-2">
-                    范围: {MIN_RETRY_INTERVAL}-{MAX_RETRY_INTERVAL}秒，推荐: {TASK_RETRY_INTERVAL}秒
+                    推荐: {TASK_RETRY_INTERVAL}秒
                   </span>
                 </label>
                 <input
-                  type="number"
+                  type="text"
                   id="retryInterval"
-                  value={retryInterval}
+                  value={retryIntervalInput}
                   onChange={(e) => {
-                    const value = Number(e.target.value);
-                    if (value >= MIN_RETRY_INTERVAL && value <= MAX_RETRY_INTERVAL) {
-                      setRetryInterval(value);
-                    } else {
-                      toast.warning(`重试间隔必须在 ${MIN_RETRY_INTERVAL}-${MAX_RETRY_INTERVAL} 秒之间`);
+                    const value = e.target.value;
+                    // 允许空字符串和数字输入
+                    if (value === '' || /^\d*$/.test(value)) {
+                      setRetryIntervalInput(value);
+                      const numValue = Number(value);
+                      if (!isNaN(numValue) && numValue > 0) {
+                        setRetryInterval(numValue);
+                      }
                     }
                   }}
-                  min={MIN_RETRY_INTERVAL}
-                  max={MAX_RETRY_INTERVAL}
-                  className={`w-full cyber-input bg-cyber-surface text-cyber-text border-cyber-border focus:ring-cyber-primary focus:border-cyber-primary ${
-                    !validateRetryInterval(retryInterval) ? 'border-red-500' : ''
-                  }`}
+                  onBlur={(e) => {
+                    const value = Number(e.target.value);
+                    if (isNaN(value) || value < 1) {
+                      if (e.target.value.trim() === '') {
+                        setRetryIntervalInput(String(TASK_RETRY_INTERVAL));
+                        setRetryInterval(TASK_RETRY_INTERVAL);
+                      } else {
+                        setRetryIntervalInput(String(value < 1 ? TASK_RETRY_INTERVAL : value));
+                        setRetryInterval(value < 1 ? TASK_RETRY_INTERVAL : value);
+                      }
+                    } else {
+                      setRetryInterval(value);
+                      setRetryIntervalInput(String(value));
+                    }
+                  }}
+                  className="w-full cyber-input bg-cyber-surface text-cyber-text border-cyber-border focus:ring-cyber-primary focus:border-cyber-primary"
                   placeholder={`推荐: ${TASK_RETRY_INTERVAL}秒`}
                 />
-                {!validateRetryInterval(retryInterval) && (
-                  <p className="text-xs text-red-400 mt-1">
-                    ⚠️ 间隔时间过短可能导致API过载，建议设置为 {TASK_RETRY_INTERVAL} 秒或更长
-                  </p>
-                )}
               </div>
             </div>
 
@@ -510,12 +542,14 @@ const QueuePage = () => {
             className="w-full cyber-button bg-cyber-primary hover:bg-cyber-primary-dark text-white font-semibold py-2.5"
             disabled={!planCodeInput.trim() || selectedDatacenters.length === 0}
           >
-            {selectedDatacenters.length > 0 && quantity > 1 
-              ? `添加到队列（将创建 ${selectedDatacenters.length * quantity} 个独立任务${selectedOptions.length > 0 ? `，含${selectedOptions.length}个可选配置` : ''}）`
-              : selectedDatacenters.length > 0 && quantity === 1
-              ? `添加到队列（${selectedDatacenters.length} 个任务${selectedOptions.length > 0 ? `，含${selectedOptions.length}个可选配置` : ''}）`
-              : '添加到队列'
-            }
+            {selectedDatacenters.length > 0 && (() => {
+              const qty = Number(quantityInput) || 1;
+              const totalTasks = selectedDatacenters.length * qty;
+              return qty > 1 
+                ? `添加到队列（将创建 ${totalTasks} 个独立任务${selectedOptions.length > 0 ? `，含${selectedOptions.length}个可选配置` : ''}）`
+                : `添加到队列（${selectedDatacenters.length} 个任务${selectedOptions.length > 0 ? `，含${selectedOptions.length}个可选配置` : ''}）`;
+            })()}
+            {selectedDatacenters.length === 0 && '添加到队列'}
           </button>
         </div>
       )}
