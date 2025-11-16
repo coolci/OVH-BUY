@@ -14,6 +14,7 @@ import re
 import traceback
 import requests
 from dotenv import load_dotenv
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # 加载 .env 文件
 load_dotenv()
@@ -2954,8 +2955,8 @@ def process_telegram_order(plan_code, datacenter=None, quantity=1, options=None)
         # 计算总订单数
         total_orders = len(configs_to_order) * len(datacenters_to_order) * quantity
         
-        # 创建订单
-        created_orders = 0
+        # 先收集所有需要创建的订单项（不立即添加到队列）
+        orders_to_create = []
         for config_key, config_data in configs_to_order:
             config_options = config_data.get("options", [])
             dc_map = config_data.get("datacenters", {})
@@ -2980,13 +2981,40 @@ def process_telegram_order(plan_code, datacenter=None, quantity=1, options=None)
                         "lastCheckTime": 0,
                         "fromTelegram": True  # 标记来自Telegram
                     }
-                    
-                    queue.append(queue_item)
-                    created_orders += 1
+                    orders_to_create.append(queue_item)
+        
+        # 并发处理订单创建（每批10单）
+        BATCH_SIZE = 10
+        created_orders = 0
+        queue_lock = threading.Lock()  # 用于保护队列操作的锁
+        
+        def add_order_to_queue(order_item):
+            """将订单添加到队列（线程安全）"""
+            with queue_lock:
+                queue.append(order_item)
+                return True
+        
+        # 分批并发处理
+        total_batches = (len(orders_to_create) + BATCH_SIZE - 1) // BATCH_SIZE
+        add_log("INFO", f"开始并发创建订单: 总数={len(orders_to_create)}, 批次大小={BATCH_SIZE}, 总批次数={total_batches}", "telegram")
+        
+        for batch_idx in range(total_batches):
+            start_idx = batch_idx * BATCH_SIZE
+            end_idx = min(start_idx + BATCH_SIZE, len(orders_to_create))
+            batch_orders = orders_to_create[start_idx:end_idx]
+            
+            # 使用线程池并发处理当前批次
+            with ThreadPoolExecutor(max_workers=BATCH_SIZE) as executor:
+                futures = [executor.submit(add_order_to_queue, order_item) for order_item in batch_orders]
+                batch_created = sum(1 for future in as_completed(futures) if future.result())
+                created_orders += batch_created
+            
+            add_log("INFO", f"批次 {batch_idx + 1}/{total_batches} 完成: 本批次创建 {len(batch_orders)} 个订单", "telegram")
         
         if created_orders > 0:
             save_data()
             update_stats()
+            add_log("INFO", f"并发创建订单完成: 共创建 {created_orders}/{total_orders} 个订单", "telegram")
         
         return {
             "success": True,
