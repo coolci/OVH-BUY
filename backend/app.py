@@ -1060,6 +1060,9 @@ def purchase_server(queue_item):
 # Process queue items
 def process_queue():
     global deleted_task_ids
+    # 并发处理配置
+    CONCURRENT_BATCH_SIZE = 10  # 每批并发处理10个订单
+    
     while True:
         # 在循环开始时检查队列是否为空
         if not queue:
@@ -1076,68 +1079,140 @@ def process_queue():
         if removed_ids:
             deleted_task_ids -= removed_ids
             add_log("DEBUG", f"清理 {len(removed_ids)} 个已从队列移除的删除标记", "queue")
-            
+        
+        # 收集需要处理的订单（满足重试间隔的）
+        current_time = time.time()
+        items_ready_to_process = []
+        
         # 复制一份并按优先级排序：quickOrder 优先，其次按创建时间
-        items_to_process = sorted(
+        items_to_check = sorted(
             list(queue),
             key=lambda it: (
                 0 if it.get("quickOrder") else 1,                 # quickOrder 优先
                 -int(datetime.fromisoformat(it.get("createdAt")).timestamp()) if it.get("createdAt") else 0  # 越新越先
             )
         )
-        for item in items_to_process:
+        
+        for item in items_to_check:
             # 优先检查：任务是否在删除集合中（前端删除时立即生效）
             if item["id"] in deleted_task_ids:
-                add_log("INFO", f"任务 {item['id']} 已被标记为删除，跳过处理", "queue")
                 continue
             
             # 次要检查：在处理前检查项目是否仍在原始队列中（通过ID检查）
             item_still_exists = any(q_item["id"] == item["id"] for q_item in queue)
             if not item_still_exists:
-                add_log("INFO", f"任务 {item['id']} 已从队列中移除，跳过处理", "queue")
-                # 添加到删除集合，避免重复处理
                 deleted_task_ids.add(item["id"])
                 continue
             
             if item["status"] == "running":
-                current_time = time.time()
                 last_check_time = item.get("lastCheckTime", 0)
                 
                 # 如果是首次尝试 (lastCheckTime为0) 或者到达重试间隔
                 if last_check_time == 0 or (current_time - last_check_time >= item["retryInterval"]):
                     # 最后检查：任务是否被标记删除
                     if item["id"] in deleted_task_ids:
-                        add_log("INFO", f"任务 {item['id']} 在执行前被标记删除", "queue")
                         continue
                     
                     # 再次检查任务是否还在队列中（可能在等待期间被删除）
                     if not any(q_item["id"] == item["id"] for q_item in queue):
-                        add_log("INFO", f"任务 {item['id']} 在处理前被移除", "queue")
                         deleted_task_ids.add(item["id"])
                         continue
                     
-                    if last_check_time == 0:
-                        add_log("INFO", f"首次尝试任务 {item['id']}: {item['planCode']} 在 {item['datacenter']}", "queue")
+                    # 添加到待处理列表
+                    items_ready_to_process.append(item)
+        
+        # ✅ 并发处理收集到的订单
+        if items_ready_to_process:
+            add_log("DEBUG", f"准备并发处理 {len(items_ready_to_process)} 个订单", "queue")
+            
+            # 使用锁保护队列操作
+            queue_lock = threading.Lock()
+            processed_items = []  # 记录已处理的订单（用于后续从队列移除）
+            
+            def process_single_item(item):
+                """处理单个订单项（线程安全）"""
+                item_id = item["id"]
+                
+                # 再次检查任务是否被删除或已不在队列中
+                if item_id in deleted_task_ids:
+                    return {"id": item_id, "status": "skipped", "reason": "deleted"}
+                
+                with queue_lock:
+                    item_still_exists = any(q_item["id"] == item_id for q_item in queue)
+                    if not item_still_exists:
+                        deleted_task_ids.add(item_id)
+                        return {"id": item_id, "status": "skipped", "reason": "not_in_queue"}
+                
+                # 更新检查时间和重试计数（需要锁保护）
+                with queue_lock:
+                    # 再次从队列中获取最新状态
+                    current_item = next((q for q in queue if q["id"] == item_id), None)
+                    if not current_item:
+                        return {"id": item_id, "status": "skipped", "reason": "not_found"}
+                    
+                    # 记录是否是首次尝试和当前重试次数（在更新之前检查）
+                    is_first_attempt = current_item.get("lastCheckTime", 0) == 0
+                    current_retry_count = current_item.get("retryCount", 0)
+                    
+                    current_item["lastCheckTime"] = current_time
+                    current_item["retryCount"] = current_retry_count + 1
+                    current_item["updatedAt"] = datetime.now().isoformat()
+                    
+                    final_retry_count = current_item["retryCount"]
+                    
+                    if is_first_attempt:
+                        add_log("INFO", f"首次尝试任务 {item_id}: {current_item['planCode']} 在 {current_item['datacenter']}", "queue")
                     else:
-                        add_log("INFO", f"重试检查任务 {item['id']} (尝试次数: {item['retryCount'] + 1}): {item['planCode']} 在 {item['datacenter']}", "queue")
+                        add_log("INFO", f"重试检查任务 {item_id} (尝试次数: {final_retry_count}): {current_item['planCode']} 在 {current_item['datacenter']}", "queue")
+                
+                # 尝试购买（不需要锁，因为purchase_server内部会处理）
+                try:
+                    success = purchase_server(current_item)
                     
-                    # 更新检查时间和重试计数
-                    item["lastCheckTime"] = current_time
-                    item["retryCount"] += 1
-                    item["updatedAt"] = datetime.now().isoformat()
+                    with queue_lock:
+                        if success:
+                            current_item["status"] = "completed"
+                            current_item["updatedAt"] = datetime.now().isoformat()
+                            log_message_verb = "首次尝试购买成功" if final_retry_count == 1 else f"重试购买成功 (尝试次数: {final_retry_count})"
+                            add_log("INFO", f"{log_message_verb}: {current_item['planCode']} 在 {current_item['datacenter']} (ID: {item_id})", "queue")
+                            return {"id": item_id, "status": "completed", "item": current_item}
+                        else:
+                            log_message_verb = "首次尝试购买失败或服务器暂无货" if final_retry_count == 1 else f"重试购买失败或服务器仍无货 (尝试次数: {final_retry_count})"
+                            add_log("INFO", f"{log_message_verb}: {current_item['planCode']} 在 {current_item['datacenter']} (ID: {item_id})。将根据重试间隔再次尝试。", "queue")
+                            return {"id": item_id, "status": "failed", "item": current_item}
+                except Exception as e:
+                    add_log("ERROR", f"处理订单 {item_id} 时发生异常: {str(e)}", "queue")
+                    return {"id": item_id, "status": "error", "error": str(e)}
+            
+            # 分批并发处理
+            total_batches = (len(items_ready_to_process) + CONCURRENT_BATCH_SIZE - 1) // CONCURRENT_BATCH_SIZE
+            
+            for batch_idx in range(total_batches):
+                start_idx = batch_idx * CONCURRENT_BATCH_SIZE
+                end_idx = min(start_idx + CONCURRENT_BATCH_SIZE, len(items_ready_to_process))
+                batch_items = items_ready_to_process[start_idx:end_idx]
+                
+                # 使用线程池并发处理当前批次
+                with ThreadPoolExecutor(max_workers=CONCURRENT_BATCH_SIZE) as executor:
+                    futures = [executor.submit(process_single_item, item) for item in batch_items]
+                    batch_results = [future.result() for future in as_completed(futures)]
                     
-                    # 尝试购买
-                    if purchase_server(item):
-                        item["status"] = "completed"
-                        item["updatedAt"] = datetime.now().isoformat()
-                        log_message_verb = "首次尝试购买成功" if item["retryCount"] == 1 else f"重试购买成功 (尝试次数: {item['retryCount']})"
-                        add_log("INFO", f"{log_message_verb}: {item['planCode']} 在 {item['datacenter']} (ID: {item['id']})", "queue")
-                    else:
-                        log_message_verb = "首次尝试购买失败或服务器暂无货" if item["retryCount"] == 1 else f"重试购买失败或服务器仍无货 (尝试次数: {item['retryCount']})"
-                        add_log("INFO", f"{log_message_verb}: {item['planCode']} 在 {item['datacenter']} (ID: {item['id']})。将根据重试间隔再次尝试。", "queue")
+                    # 收集已完成的订单，准备从队列移除
+                    for result in batch_results:
+                        if result.get("status") == "completed":
+                            processed_items.append(result["id"])
                     
-                    save_data() # 保存队列状态
-                    update_stats() # 更新统计信息
+                    add_log("DEBUG", f"批次 {batch_idx + 1}/{total_batches} 完成: 处理了 {len(batch_results)} 个订单", "queue")
+            
+            # 从队列中移除已完成的订单
+            if processed_items:
+                with queue_lock:
+                    queue[:] = [q_item for q_item in queue if q_item["id"] not in processed_items]
+                    add_log("INFO", f"已从队列移除 {len(processed_items)} 个已完成的订单", "queue")
+            
+            # 保存队列状态
+            save_data()
+            update_stats()
         
         time.sleep(1) # 每秒检查一次队列
 
