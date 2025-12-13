@@ -1568,11 +1568,11 @@ class ServerMonitor:
             }
             
             try:
-                response = requests.post(api_url, json=payload, timeout=20)  # 价格校验超时设置为20秒
+                response = requests.post(api_url, json=payload, timeout=30)  # 价格校验超时设置为30秒
                 response.raise_for_status()
                 result = response.json()
             except requests.exceptions.Timeout:
-                error_msg = "价格校验API请求超时（20秒）"
+                error_msg = "价格校验API请求超时（30秒）"
                 self.add_log("DEBUG", f"价格校验API请求超时: {plan_code}@{datacenter}", "monitor")
                 return False, error_msg
             except requests.exceptions.RequestException as e:
