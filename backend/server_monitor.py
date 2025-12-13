@@ -810,20 +810,26 @@ class ServerMonitor:
                     
                     # ✅ 使用统一方法限制历史记录数量（在循环外统一限制，避免重复检查）
                     self._limit_history_size(subscription)
-            
-            # 更新状态（需要转换为状态字典）
-            new_last_status = {}
+
+            # ✅ 更新状态：保留循环中更新的actual_status，只为新配置初始化状态
+            # 注意：last_status 在循环中已经正确更新为经过价格校验的 actual_status
+            # 这里只需要为新出现的配置（循环中没有遇到的）初始化状态
             for config_key, config_data in current_availability.items():
                 if isinstance(config_data, str):
-                    # 简单的数据中心状态
-                    new_last_status[config_key] = config_data
+                    # 简单的数据中心状态（旧版兼容）
+                    if config_key not in last_status:
+                        last_status[config_key] = config_data
                 elif isinstance(config_data, dict) and "datacenters" in config_data:
                     # 配置级别的状态
                     for dc, status in config_data["datacenters"].items():
                         status_key = f"{dc}|{config_key}"
-                        new_last_status[status_key] = status
-            
-            subscription["lastStatus"] = new_last_status
+                        # 只有当last_status中没有这个key时才初始化（新配置）
+                        # 如果已经有了（在循环中更新过），就不要覆盖，保留price_check_failed等状态
+                        if status_key not in last_status:
+                            last_status[status_key] = status
+
+            # ✅ 使用循环中更新的last_status，保留了经过价格校验的actual_status
+            subscription["lastStatus"] = last_status
             
         except Exception as e:
             self.add_log("ERROR", f"检查 {plan_code} 可用性时出错: {str(e)}", "monitor")
